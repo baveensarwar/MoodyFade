@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cancel Appointment · Moody Fade</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0A0A;--surf:#111111;--surf2:#191919;--bdr:#272727;
+  --yellow:#FFCB05;--yellow3:#C49900;--yellowbg:rgba(255,203,5,.07);
+  --txt:#FFFFFF;--txt2:#B0B0B0;--txt3:#606060;
+  --green:#5CBF7A;--red:#E05555;
+  --ff:'Hanken Grotesk',sans-serif;
+}
+html{min-height:100%}
+body{background:var(--bg);color:var(--txt);font-family:var(--ff);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* NAV */
+nav{height:64px;padding:0 5vw;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr);background:rgba(10,10,10,.97)}
+.nav-logo{display:flex;align-items:center}
+.nav-logo svg{height:38px;width:auto}
+
+/* MAIN */
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.card{width:100%;max-width:460px;background:var(--surf);border:1px solid var(--bdr);border-top:3px solid var(--yellow);padding:40px;animation:fadeUp .35s ease}
+
+/* DETAIL TABLE */
+.detail-grid{display:grid;grid-template-columns:auto 1fr;gap:10px 24px;font-size:13px;padding:16px;background:var(--surf2);border-left:3px solid var(--yellow);margin-bottom:24px}
+.dk{color:var(--txt3);font-weight:600;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:3px 0}
+.dv{color:var(--txt);font-weight:500;padding:3px 0}
+.dp{color:var(--yellow);font-size:18px;font-weight:800;padding:3px 0}
+
+/* BUTTONS */
+.btn{display:block;width:100%;padding:14px;font-family:var(--ff);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;border:none;text-align:center;transition:all .2s;text-decoration:none}
+.btn-yellow{background:var(--yellow);color:#000}.btn-yellow:hover{background:#FFD633;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--txt2);border:1px solid var(--bdr);margin-bottom:10px;display:block}.btn-ghost:hover{border-color:var(--txt3);color:var(--txt)}
+.btn-danger{background:transparent;color:var(--red);border:1px solid rgba(224,85,85,.3);margin-top:0}.btn-danger:hover{background:rgba(224,85,85,.07)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* STATUS STATES */
+.state-wrap{text-align:center;padding:10px 0 22px}
+.state-icon{font-size:44px;margin-bottom:14px;display:block}
+.state-title{font-size:22px;font-weight:900;color:var(--txt);margin-bottom:8px;letter-spacing:-0.5px}
+.state-body{font-size:13px;color:var(--txt2);line-height:1.8;margin-bottom:24px}
+
+/* ERR */
+.err-box{background:rgba(224,85,85,.07);border-left:3px solid var(--red);color:var(--red);font-size:12px;padding:10px 13px;margin-bottom:14px;line-height:1.5;display:none}
+
+/* LOADING */
+.loading{text-align:center;padding:40px 0;color:var(--txt3);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;animation:pulse 1.4s infinite}
+
+/* FOOTER */
+footer{text-align:center;padding:20px;border-top:1px solid var(--bdr)}
+.footer-txt{font-size:10px;color:var(--txt3);letter-spacing:1px}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><img src="/images/logo.svg" style="height:40px;width:auto;display:block" alt="Moody Fade Barbershop"></a>
+  <a href="index.html" style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt3)">← Back to Site</a>
+</nav>
+
+<main>
+  <div class="card">
+    <div id="content"><div class="loading">Looking up your appointment…</div></div>
+  </div>
+</main>
+
+<footer>
+  <p class="footer-txt">2255 E Hastings St, Vancouver, BC &nbsp;·&nbsp; +1 (236) 480-4026</p>
+</footer>
+
+<script>
+const{createClient}=supabase;
+const SB=createClient(
+  'https://bljvdmzngedsgzpmckyy.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsanZkbXpuZ2Vkc2d6cG1ja3l5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMTY4MDYsImV4cCI6MjA5MDU5MjgwNn0.pZ9zkBGKRRzQIBajqXbfP4O5aO2gPVaN6ws-jloQgr0'
+);
+const token=new URLSearchParams(location.search).get('token');
+
+async function init(){
+  if(!token){showErr('Invalid cancellation link. Please use the link from your confirmation email.');return}
+  const{data,error}=await SB.rpc('get_booking_by_token',{p_token:token});
+  if(error||!data?.found){showErr('Booking not found. This link may be invalid or expired.');return}
+  showBooking(data.booking);
+}
+
+function showBooking(b){
+  const c=document.getElementById('content');
+  if(b.status==='cancelled'){
+    c.innerHTML=`<div class="state-wrap">
+      <span class="state-icon" style="color:var(--txt3)">✕</span>
+      <div class="state-title">Already Cancelled</div>
+      <p class="state-body">This booking has already been cancelled.</p>
+      <a href="index.html" class="btn btn-ghost">← Back to Website</a>
+    </div>`;return;
+  }
+  if(b.status==='completed'){
+    c.innerHTML=`<div class="state-wrap">
+      <span class="state-icon" style="color:var(--green)">✓</span>
+      <div class="state-title">Appointment Completed</div>
+      <p class="state-body">This appointment has already been completed and cannot be cancelled.</p>
+      <a href="index.html" class="btn btn-ghost">← Back to Website</a>
+    </div>`;return;
+  }
+  c.innerHTML=`
+    <div style="margin-bottom:20px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--yellow);margin-bottom:6px">Cancel Appointment</div>
+      <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px">Are you sure?</div>
+      <p style="font-size:13px;color:var(--txt2);margin-top:6px;line-height:1.7">You're about to cancel the following appointment. This cannot be undone.</p>
+    </div>
+    <div class="detail-grid">
+      <span class="dk">Service</span><span class="dv">${esc(b.service_name)}</span>
+      <span class="dk">Barber</span><span class="dv">${esc(b.staff_name||'Any Available')}</span>
+      <span class="dk">Date</span><span class="dv">${esc(b.date)}</span>
+      <span class="dk">Time</span><span class="dv">${esc(b.time)}</span>
+      <span class="dk">Price</span><span class="dp">$${b.service_price} CAD</span>
+    </div>
+    <div id="cancel-err" class="err-box"></div>
+    <a href="index.html" class="btn btn-ghost">Keep My Appointment</a>
+    <button class="btn btn-danger" id="cancel-btn" onclick="cancelBooking()">Yes, Cancel My Appointment</button>`;
+}
+
+async function cancelBooking(){
+  const btn=document.getElementById('cancel-btn');
+  btn.disabled=true;btn.textContent='Cancelling…';
+  const errEl=document.getElementById('cancel-err');errEl.style.display='none';
+  const{data,error}=await SB.rpc('cancel_booking_by_token',{p_token:token});
+  if(error||!data?.ok){
+    errEl.textContent=data?.error||'Cancellation failed. Please call us at +1 (236) 480-4026.';
+    errEl.style.display='block';btn.disabled=false;btn.textContent='Yes, Cancel My Appointment';return;
+  }
+  document.getElementById('content').innerHTML=`<div class="state-wrap">
+    <span class="state-icon" style="color:var(--green)">✓</span>
+    <div class="state-title">Appointment Cancelled</div>
+    <p class="state-body">Your appointment has been cancelled. We hope to see you again soon!</p>
+    <a href="index.html" class="btn btn-yellow">Book a New Appointment</a>
+  </div>`;
+}
+
+function showErr(msg){
+  document.getElementById('content').innerHTML=`<div class="state-wrap">
+    <span class="state-icon" style="color:var(--red)">!</span>
+    <div class="state-title" style="color:var(--red)">Link Error</div>
+    <p class="state-body">${esc(msg)}</p>
+    <a href="index.html" class="btn btn-ghost">← Back to Website</a>
+  </div>`;
+}
+
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+init();
+</script>
+</body>
+</html>
