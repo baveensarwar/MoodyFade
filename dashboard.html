@@ -353,6 +353,18 @@ input,select,textarea{font-family:var(--ff)}
           </div>
           <div id="blocked-list"><div class="loading-state">Loading…</div></div>
         </div>
+
+        <!-- SERVICE DURATION OVERRIDES -->
+        <div class="schedule-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div>
+              <div class="schedule-section-title" style="margin-bottom:4px">My Service Durations</div>
+              <p style="font-size:12px;color:var(--txt3);font-weight:500">Override how long each service takes for you. Affects which time slots clients can book.</p>
+            </div>
+            <button class="btn btn-yellow" onclick="saveDurations()" id="save-durations-btn" style="padding:8px 16px;flex-shrink:0;margin-left:12px">Save</button>
+          </div>
+          <div id="durations-grid"><div class="loading-state">Loading…</div></div>
+        </div>
       </div>
 
       <!-- STAFF (admin only) -->
@@ -610,8 +622,10 @@ function openCancelModal(id){
 function closeCancelModal(){document.getElementById('cancel-modal').classList.remove('open');cancelTarget=null}
 async function confirmCancel(){
   if(!cancelTarget)return;
-  document.getElementById('confirm-cancel-btn').disabled=true;
+  const btn=document.getElementById('confirm-cancel-btn');
+  btn.disabled=true;btn.textContent='Cancelling…';
   await SB.from('bookings').update({status:'cancelled'}).eq('id',cancelTarget);
+  btn.disabled=false;btn.textContent='Yes, Cancel';
   closeCancelModal();await loadBookings();renderTodayView();renderBookingsTable();
 }
 
@@ -635,6 +649,7 @@ function initScheduleView(){
   document.getElementById('block-date').min=t;
   loadWeeklyHours();
   loadBlockedSlots();
+  loadDurations();
 }
 
 async function loadWeeklyHours(){
@@ -733,6 +748,64 @@ async function blockFullDay(){
 async function unblockDate(date){
   await SB.from('blocked_slots').delete().eq('staff_id',currentStaff.id).eq('date',date).eq('full_day',true);
   loadBlockedSlots();
+}
+
+/* ── SERVICE DURATIONS ── */
+const ALL_SVCS=[
+  {name:'Adult Haircut',dur:45},{name:'Senior Haircut',dur:30},
+  {name:'Skin Fade',dur:40},{name:'Kids Haircut',dur:30},
+  {name:'Long Hair Scissors Trim',dur:60},{name:'High School Student',dur:30},
+  {name:'Buzz Cut',dur:15},{name:'Head Shave',dur:30},
+  {name:'Haircut + Beard + Facial',dur:60},{name:'Skin Fade + Beard Trim',dur:45},
+  {name:'Haircut + Beard Trim',dur:45},{name:'Head Shave + Beard Trim',dur:30},
+  {name:'Beard Trim & Lineup',dur:30},{name:'Hot Towel Shave',dur:20},
+  {name:'Eyebrow Trim',dur:15},{name:'Ear & Nose Wax',dur:10},
+  {name:'Design',dur:10},{name:'Head Wash',dur:5},
+  {name:'Face Wax',dur:5},{name:'Face Mask',dur:15},
+  {name:'Skin Steam Facial',dur:45},{name:'Hair & Beard Products',dur:5},
+  {name:'Permanent Hair Colour (Dark Brown/Black)',dur:30},
+  {name:'Permanent Beard Colour (Dark Brown/Black)',dur:15},
+  {name:'Hair & Beard Colour Combo',dur:30},{name:'Temporary Colours',dur:5},
+];
+
+async function loadDurations(){
+  const{data}=await SB.from('staff_service_durations').select('*').eq('staff_id',currentStaff.id);
+  const overrides={};
+  (data||[]).forEach(d=>{overrides[d.service_name]=d.duration_minutes});
+  document.getElementById('durations-grid').innerHTML=ALL_SVCS.map(s=>{
+    const custom=overrides[s.name]||'';
+    const id='dur-'+s.name.replace(/[^a-zA-Z0-9]/g,'-');
+    return`<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 14px;background:var(--surf3);border:1px solid var(--bdr);margin-bottom:6px">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:#fff">${esc(s.name)}</div>
+        <div style="font-size:10px;color:var(--txt3);margin-top:2px">Default: ${s.dur} min</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="${id}" value="${custom}" placeholder="${s.dur}" min="5" max="300" step="5"
+          style="width:64px;background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);padding:7px 8px;font-size:13px;font-family:var(--ff);outline:none;text-align:center;-moz-appearance:textfield">
+        <span style="font-size:11px;color:var(--txt3);font-weight:500">min</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveDurations(){
+  const btn=document.getElementById('save-durations-btn');
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const rows=ALL_SVCS.map(s=>{
+      const id='dur-'+s.name.replace(/[^a-zA-Z0-9]/g,'-');
+      const el=document.getElementById(id);
+      const val=parseInt(el?.value);
+      if(val&&val>0&&val!==s.dur)return{staff_id:currentStaff.id,service_name:s.name,duration_minutes:val};
+      return null;
+    }).filter(Boolean);
+    // Delete all existing overrides then re-insert
+    await SB.from('staff_service_durations').delete().eq('staff_id',currentStaff.id);
+    if(rows.length)await SB.from('staff_service_durations').insert(rows);
+    btn.textContent='Saved ✓';btn.style.background='var(--green)';btn.style.color='#000';
+    setTimeout(()=>{btn.textContent='Save';btn.style.background='';btn.style.color='';btn.disabled=false},2000);
+  }catch(e){btn.disabled=false;btn.textContent='Save'}
 }
 
 /* ── STAFF MANAGEMENT ── */
