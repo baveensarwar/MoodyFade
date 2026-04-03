@@ -985,12 +985,12 @@ async function submitBooking(){
   if(!name||!email){errEl.textContent='Please enter your name and email.';errEl.classList.remove('hidden');return}
   BK.info={name,email,phone:document.getElementById('f-phone').value.trim(),notes:document.getElementById('f-notes').value.trim()};
   const btn=document.getElementById('step4-confirm-btn');btn.disabled=true;btn.textContent='Booking…';
-  const{error}=await SB.from('bookings').insert({
+  const{error}=await SB.from('bookings').insert([{
     service_name:BK.svc.name,service_price:BK.svc.price,service_dur:BK.svc.dur,
     staff_id:BK.staff?.id||null,staff_name:BK.staff?.name||null,
     client_name:name,client_email:email,client_phone:BK.info.phone||null,
     date:fmtISO(BK.date),time:BK.time,notes:BK.info.notes||null
-  }).select().single();
+  }], {defaultToNull: true, count: null});
   if(error){errEl.textContent='Booking failed: '+error.message;errEl.classList.remove('hidden');btn.disabled=false;btn.textContent='Confirm Booking';return}
   BK.step=5;renderStep();
 }
