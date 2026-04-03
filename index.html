@@ -990,7 +990,7 @@ async function submitBooking(){
     staff_id:BK.staff?.id||null,staff_name:BK.staff?.name||null,
     client_name:name,client_email:email,client_phone:BK.info.phone||null,
     date:fmtISO(BK.date),time:BK.time,notes:BK.info.notes||null
-  });
+  }).select().single();
   if(error){errEl.textContent='Booking failed: '+error.message;errEl.classList.remove('hidden');btn.disabled=false;btn.textContent='Confirm Booking';return}
   BK.step=5;renderStep();
 }
