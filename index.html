@@ -772,34 +772,75 @@ function isSlotAvailable(slotTime,newDur,existingBookings){
 
 async function fetchBlockedDays(){
   BLOCKED_DAYS=new Set();STAFF_HOURS={};BARBER_DURATIONS={};
-  if(!BK.staff)return;
-  const[bd,wh,dd]=await Promise.all([
-    SB.from('blocked_slots').select('date').eq('staff_id',BK.staff.id).eq('full_day',true),
-    SB.from('staff_hours').select('*').eq('staff_id',BK.staff.id),
-    SB.from('staff_service_durations').select('*').eq('staff_id',BK.staff.id)
-  ]);
-  (bd.data||[]).forEach(b=>BLOCKED_DAYS.add(b.date));
-  (wh.data||[]).forEach(h=>{STAFF_HOURS[h.day_of_week]={is_working:h.is_working,start_time:h.start_time,end_time:h.end_time}});
-  (dd.data||[]).forEach(d=>{BARBER_DURATIONS[d.service_name]=d.duration_minutes});
+  if(BK.staff){
+    const[bd,wh,dd]=await Promise.all([
+      SB.from('blocked_slots').select('date').eq('staff_id',BK.staff.id).eq('full_day',true),
+      SB.from('staff_hours').select('*').eq('staff_id',BK.staff.id),
+      SB.from('staff_service_durations').select('*').eq('staff_id',BK.staff.id)
+    ]);
+    (bd.data||[]).forEach(b=>BLOCKED_DAYS.add(b.date));
+    (wh.data||[]).forEach(h=>{STAFF_HOURS[h.day_of_week]={is_working:h.is_working,start_time:h.start_time,end_time:h.end_time}});
+    (dd.data||[]).forEach(d=>{BARBER_DURATIONS[d.service_name]=d.duration_minutes});
+  }else{
+    const barbers=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin');
+    const barberIds=barbers.map(s=>s.id);
+    if(!barberIds.length)return;
+    const[bd,wh]=await Promise.all([
+      SB.from('blocked_slots').select('staff_id,date').eq('full_day',true).in('staff_id',barberIds),
+      SB.from('staff_hours').select('*').in('staff_id',barberIds)
+    ]);
+    window.ALL_STAFF_BLOCKED={};
+    (bd.data||[]).forEach(b=>{
+      if(!window.ALL_STAFF_BLOCKED[b.staff_id])window.ALL_STAFF_BLOCKED[b.staff_id]=new Set();
+      window.ALL_STAFF_BLOCKED[b.staff_id].add(b.date);
+    });
+    window.ALL_STAFF_HOURS={};
+    (wh.data||[]).forEach(h=>{
+      if(!window.ALL_STAFF_HOURS[h.staff_id])window.ALL_STAFF_HOURS[h.staff_id]={};
+      window.ALL_STAFF_HOURS[h.staff_id][h.day_of_week]={is_working:h.is_working,start_time:h.start_time,end_time:h.end_time};
+    });
+  }
 }
 
 function isBarberWorkingOn(dt){
-  if(!BK.staff)return true; // "Any barber" — always show all slots
-  const dow=dt.getDay();
-  const h=STAFF_HOURS[dow];
-  if(!h)return true; // no hours set = assume working
-  return h.is_working;
+  if(BK.staff){
+    const dow=dt.getDay();
+    const h=STAFF_HOURS[dow];
+    if(!h)return true;
+    return h.is_working;
+  }
+  const iso=fmtISO(dt);
+  const barbers=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin');
+  return barbers.some(s=>{
+    const blocked=window.ALL_STAFF_BLOCKED?.[s.id]?.has(iso);
+    if(blocked)return false;
+    const hours=window.ALL_STAFF_HOURS?.[s.id]?.[dt.getDay()];
+    if(!hours)return true;
+    return hours.is_working;
+  });
 }
 
 function getWorkingTimesFor(dt){
   const dow=dt.getDay();
-  const h=BK.staff?STAFF_HOURS[dow]:null;
-  // Default window if no hours set
-  const defStart=timeToMins('9:00 AM'),defEnd=timeToMins('6:00 PM');
-  if(!h||!h.is_working) return BK.staff?[]
-    :TIMES.filter(t=>{const m=timeToMins(t);return m>=defStart&&m<defEnd});
-  const si=timeToMins(h.start_time),ei=timeToMins(h.end_time);
-  return TIMES.filter(t=>{const m=timeToMins(t);return m>=si&&m<ei});
+  if(BK.staff){
+    const h=STAFF_HOURS[dow];
+    if(!h||!h.is_working)return[];
+    const si=timeToMins(h.start_time),ei=timeToMins(h.end_time);
+    return TIMES.filter(t=>{const m=timeToMins(t);return m>=si&&m<ei});
+  }
+  const iso=fmtISO(dt);
+  const barbers=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin');
+  const allMins=new Set();
+  barbers.forEach(s=>{
+    const blocked=window.ALL_STAFF_BLOCKED?.[s.id]?.has(iso);
+    if(blocked)return;
+    const hours=window.ALL_STAFF_HOURS?.[s.id]?.[dow];
+    if(hours&&!hours.is_working)return;
+    const si=hours?.is_working?timeToMins(hours.start_time):timeToMins('9:00 AM');
+    const ei=hours?.is_working?timeToMins(hours.end_time):timeToMins('6:00 PM');
+    TIMES.forEach(t=>{const m=timeToMins(t);if(m>=si&&m<ei)allMins.add(t)});
+  });
+  return TIMES.filter(t=>allMins.has(t));
 }
 
 function renderCal(){
@@ -844,7 +885,12 @@ async function renderSlots(){
       .select('time,service_dur,service_name')
       .eq('date',fmtISO(BK.date))
       .eq('status','confirmed');
-    if(BK.staff) bkQuery=bkQuery.eq('staff_id',BK.staff.id);
+    if(BK.staff){
+      bkQuery=bkQuery.eq('staff_id',BK.staff.id);
+    }else{
+      const barberIds=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin').map(s=>s.id);
+      if(barberIds.length)bkQuery=bkQuery.in('staff_id',barberIds);
+    }
     const{data:bkData,error:bkErr}=await bkQuery;
     if(!bkErr) existingBookings=bkData||[];
 
