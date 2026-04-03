@@ -1,4 +1,4 @@
-<!DOCTYPE html> <!---->
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -617,19 +617,92 @@ function buildBookingsHtml(bks){
 function buildBookingRow(b){
   const sCls={'confirmed':'status-confirmed','completed':'status-completed','cancelled':'status-cancelled'}[b.status]||'';
   const sLbl={'confirmed':'Confirmed','completed':'Completed','cancelled':'Cancelled'}[b.status]||b.status;
+  const canEdit=b.status==='confirmed'||b.status==='completed';
+  const priceHtml=canEdit
+    ?`<div class="svc-price editable-price" id="price-${b.id}" onclick="editPrice('${b.id}')" title="Click to edit actual amount paid" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px">$${b.service_price}<span style="font-size:9px;color:var(--yellow3);font-weight:500">✎</span></div>`
+    :`<div class="svc-price">$${b.service_price}</div>`;
   let actions='';
   if(b.status==='confirmed'){
     actions+=`<button class="btn btn-success" onclick="markComplete('${b.id}')" style="padding:5px 9px;font-size:7px">✓ Done</button>`;
     if(isAdmin())actions+=`<button class="btn btn-danger" onclick="openCancelModal('${b.id}')" style="padding:5px 9px;font-size:7px">✕ Cancel</button>`;
   }
-  return`<tr>
+  return`<tr id="row-${b.id}">
     <td><div class="client-name">${esc(b.client_name)}</div><div class="client-email">${esc(b.client_email)}</div>${b.client_phone?`<div class="client-email">${esc(b.client_phone)}</div>`:''}</td>
-    <td><div class="svc-name">${esc(b.service_name)}</div><div class="svc-price">$${b.service_price}</div></td>
+    <td><div class="svc-name">${esc(b.service_name)}</div>${priceHtml}</td>
     <td><div class="date-cell">${esc(b.date)}</div><div class="time-cell">${esc(b.time)}</div></td>
     ${isAdmin()?`<td class="staff-cell">${esc(b.staff_name||'Any')}</td>`:''}
     <td><span class="status-badge ${sCls}">${sLbl}</span></td>
     <td><div class="action-btns">${actions||'<span style="font-size:10px;color:var(--txt3)">—</span>'}</div></td>
   </tr>`;
+}
+
+function editPrice(id){
+  const el=document.getElementById('price-'+id);
+  if(!el||el.querySelector('input'))return;
+  const b=allBookings.find(x=>x.id===id);
+  if(!b)return;
+  const cur=b.service_price;
+  el.innerHTML=`<input type="number" id="price-input-${id}" value="${cur}" min="0" step="1"
+    style="width:72px;background:var(--surf3);border:1px solid var(--yellow);color:var(--yellow);padding:3px 7px;font-size:15px;font-weight:800;font-family:var(--ff);outline:none;-moz-appearance:textfield"
+    onkeydown="handlePriceKey(event,'${id}',${cur})"
+    onblur="savePrice('${id}',${cur})">`;
+  const inp=document.getElementById('price-input-'+id);
+  inp.focus();inp.select();
+  // Stop row click events bubbling
+  inp.onclick=e=>e.stopPropagation();
+}
+
+function handlePriceKey(e,id,oldPrice){
+  if(e.key==='Enter'){e.target.blur()}
+  if(e.key==='Escape'){
+    const el=document.getElementById('price-'+id);
+    if(el)el.innerHTML=`$${oldPrice}<span style="font-size:9px;color:var(--yellow3);font-weight:500">✎</span>`;
+    el.onclick=()=>editPrice(id);
+  }
+}
+
+async function savePrice(id,oldPrice){
+  const inp=document.getElementById('price-input-'+id);
+  if(!inp)return;
+  const newPrice=parseFloat(inp.value);
+  const el=document.getElementById('price-'+id);
+  if(isNaN(newPrice)||newPrice<0){
+    if(el){el.innerHTML=`$${oldPrice}<span style="font-size:9px;color:var(--yellow3);font-weight:500">✎</span>`;el.onclick=()=>editPrice(id);}
+    return;
+  }
+  if(newPrice===oldPrice){
+    if(el){el.innerHTML=`$${oldPrice}<span style="font-size:9px;color:var(--yellow3);font-weight:500">✎</span>`;el.onclick=()=>editPrice(id);}
+    return;
+  }
+  // Update DB
+  await SB.from('bookings').update({service_price:newPrice}).eq('id',id);
+  // Update local state
+  const b=allBookings.find(x=>x.id===id);
+  if(b)b.service_price=newPrice;
+  // Update price display without full re-render
+  if(el){
+    el.innerHTML=`$${newPrice}<span style="font-size:9px;color:var(--yellow3);font-weight:500">✎</span>`;
+    el.onclick=()=>editPrice(id);
+    // Flash green to confirm
+    el.style.color='var(--green)';
+    setTimeout(()=>{el.style.color='';},1000);
+  }
+  // Refresh revenue stat only
+  refreshRevenueStats();
+}
+
+function refreshRevenueStats(){
+  const todStr=new Date().toISOString().split('T')[0];
+  const todBks=allBookings.filter(b=>b.date===todStr);
+  const confirmed=todBks.filter(b=>b.status==='confirmed');
+  const completed=todBks.filter(b=>b.status==='completed');
+  const revenue=confirmed.concat(completed).reduce((s,b)=>s+(parseFloat(b.service_price)||0),0);
+  // Update just the revenue card if it exists
+  const stats=document.getElementById('today-stats');
+  if(stats){
+    const cards=stats.querySelectorAll('.stat-card');
+    if(cards[2])cards[2].querySelector('.stat-val').textContent='$'+revenue;
+  }
 }
 
 async function markComplete(id){
