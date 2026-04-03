@@ -814,24 +814,31 @@ async function renderSlots(){
   const sl=document.getElementById('slots-loading'),sg=document.getElementById('slots-grid');
   sl.classList.remove('hidden');sg.innerHTML='';
 
-  // Service duration — use barber override if set
+  // Duration for the service being booked (barber override → SVCS default)
   const svcDur=BK.staff?(BARBER_DURATIONS[BK.svc?.name]||BK.svc?.dur||30):(BK.svc?.dur||30);
 
   let existingBookings=[],dayBlocked=false;
   try{
-    // ── Fixed: build query properly, don't store mid-chain ──
-    let bkQuery=SB.from('bookings').select('time,service_dur').eq('date',fmtISO(BK.date)).eq('status','confirmed');
-    if(BK.staff)bkQuery=bkQuery.eq('staff_id',BK.staff.id);
-    const{data:bkData}=await bkQuery;
-    existingBookings=bkData||[];
+    let bkQuery=SB.from('bookings')
+      .select('time,service_dur,service_name')
+      .eq('date',fmtISO(BK.date))
+      .eq('status','confirmed');
+    if(BK.staff) bkQuery=bkQuery.eq('staff_id',BK.staff.id);
+    const{data:bkData,error:bkErr}=await bkQuery;
+    if(!bkErr) existingBookings=bkData||[];
 
     if(BK.staff){
-      const{data:blData}=await SB.from('blocked_slots').select('full_day').eq('staff_id',BK.staff.id).eq('date',fmtISO(BK.date)).eq('full_day',true);
-      if(blData?.length)dayBlocked=true;
+      const{data:blData}=await SB.from('blocked_slots')
+        .select('full_day')
+        .eq('staff_id',BK.staff.id)
+        .eq('date',fmtISO(BK.date))
+        .eq('full_day',true);
+      if(blData?.length) dayBlocked=true;
     }
   }catch(e){}
 
   sl.classList.add('hidden');
+
   if(dayBlocked){
     sg.innerHTML='<div style="color:var(--txt3);font-size:12px;grid-column:1/-1;padding:10px 0">Not available this day.</div>';
     return;
@@ -843,7 +850,7 @@ async function renderSlots(){
     return;
   }
 
-  // ── Cut off past times for today (Vancouver time) ──
+  // Vancouver time — hide past slots for today
   const vanParts=Object.fromEntries(
     new Intl.DateTimeFormat('en-CA',{timeZone:'America/Vancouver',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})
     .formatToParts(new Date()).map(p=>[p.type,p.value])
@@ -852,18 +859,35 @@ async function renderSlots(){
   const isToday=fmtISO(BK.date)===vanDateStr;
   const nowMins=isToday?(parseInt(vanParts.hour)*60+parseInt(vanParts.minute)):0;
 
-  // ── End of shift for this day ──
+  // End of barber's shift
   const dow=BK.date.getDay();
   const endHour=BK.staff&&STAFF_HOURS[dow]?.end_time
     ?timeToMins(STAFF_HOURS[dow].end_time):timeToMins('6:00 PM');
 
-  // ── Build available slots only — hide taken ones completely ──
+  // ── Pre-compute every blocked slot ──
+  // For each existing booking, figure out its real duration using:
+  // 1. stored service_dur  2. SVCS array lookup  3. fallback 30
+  const blockedSet=new Set();
+  existingBookings.forEach(b=>{
+    const bDur=b.service_dur
+      ||(SVCS.find(s=>s.name===b.service_name)||{}).dur
+      ||30;
+    const bStart=timeToMins(b.time);
+    const bEnd=bStart+bDur;
+    // Any slot whose window overlaps this booking is blocked
+    TIMES.forEach(t=>{
+      const tStart=timeToMins(t);
+      const tEnd=tStart+svcDur;
+      if(tStart<bEnd&&tEnd>bStart) blockedSet.add(t);
+    });
+  });
+
+  // ── Only show truly available slots ──
   const available=workingTimes.filter(t=>{
-    const slotStart=timeToMins(t);
-    const slotEnd=slotStart+svcDur;
-    if(isToday&&slotStart<=nowMins)return false; // past for today
-    if(slotEnd>endHour)return false;             // runs past end of shift
-    if(!isSlotAvailable(t,svcDur,existingBookings))return false; // overlaps booking
+    const mins=timeToMins(t);
+    if(isToday&&mins<=nowMins) return false;   // past
+    if(mins+svcDur>endHour) return false;       // runs past shift end
+    if(blockedSet.has(t)) return false;          // overlaps booking
     return true;
   });
 
