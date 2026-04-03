@@ -771,14 +771,14 @@ function isBarberWorkingOn(dt){
 }
 
 function getWorkingTimesFor(dt){
-  if(!BK.staff)return TIMES.filter(t=>t>='9:00 AM'&&t<='5:30 PM'); // default window for "any"
   const dow=dt.getDay();
-  const h=STAFF_HOURS[dow];
-  if(!h)return TIMES.filter(t=>t>='9:00 AM'&&t<='5:30 PM');
-  if(!h.is_working)return[];
-  const si=TIMES.indexOf(h.start_time),ei=TIMES.indexOf(h.end_time);
-  if(si===-1||ei===-1)return TIMES;
-  return TIMES.slice(si,ei); // exclude end_time (last slot starts at end_time - 30min)
+  const h=BK.staff?STAFF_HOURS[dow]:null;
+  // Default window if no hours set
+  const defStart=timeToMins('9:00 AM'),defEnd=timeToMins('6:00 PM');
+  if(!h||!h.is_working) return BK.staff?[]
+    :TIMES.filter(t=>{const m=timeToMins(t);return m>=defStart&&m<defEnd});
+  const si=timeToMins(h.start_time),ei=timeToMins(h.end_time);
+  return TIMES.filter(t=>{const m=timeToMins(t);return m>=si&&m<ei});
 }
 
 function renderCal(){
