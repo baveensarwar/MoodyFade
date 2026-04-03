@@ -558,7 +558,7 @@ footer{background:#000;border-top:3px solid var(--yellow)}
 const {createClient}=supabase;
 const SB=createClient('https://bljvdmzngedsgzpmckyy.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsanZkbXpuZ2Vkc2d6cG1ja3l5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMTY4MDYsImV4cCI6MjA5MDU5MjgwNn0.pZ9zkBGKRRzQIBajqXbfP4O5aO2gPVaN6ws-jloQgr0');
 const SVCS=[
-  {id:1,name:'Adult Haircut',cat:'Regular Haircuts',dur:30,price:27},
+  {id:1,name:'Adult Haircut',cat:'Regular Haircuts',dur:45,price:27},
   {id:2,name:'Senior',cat:'Regular Haircuts',dur:30,price:23},
   {id:3,name:'Skin Fade',cat:'Regular Haircuts',dur:40,price:30},
   {id:4,name:'Kids',cat:'Regular Haircuts',dur:30,price:23},
@@ -715,7 +715,7 @@ function selectStaff(id){
 }
 async function renderStep3(){
   const s=BK.svc;
-  // Get barber's custom duration for this service
+  // Use barber's custom duration if set, otherwise service default
   const effDur=BK.staff?(BARBER_DURATIONS[s?.name]||s?.dur||30):(s?.dur||30);
   document.getElementById('svc-banner').innerHTML=s?`
     <div><div style="font-size:13px;color:var(--yellow);font-weight:600;margin-bottom:2px">${s.name}</div>
@@ -844,9 +844,13 @@ async function renderSlots(){
   }
 
   // ── Cut off past times for today (Vancouver time) ──
-  const nowVan=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Vancouver'}));
-  const isToday=fmtISO(BK.date)===fmtISO(nowVan);
-  const nowMins=isToday?nowVan.getHours()*60+nowVan.getMinutes():0;
+  const vanParts=Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA',{timeZone:'America/Vancouver',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})
+    .formatToParts(new Date()).map(p=>[p.type,p.value])
+  );
+  const vanDateStr=`${vanParts.year}-${vanParts.month}-${vanParts.day}`;
+  const isToday=fmtISO(BK.date)===vanDateStr;
+  const nowMins=isToday?(parseInt(vanParts.hour)*60+parseInt(vanParts.minute)):0;
 
   // ── End of shift for this day ──
   const dow=BK.date.getDay();
