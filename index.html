@@ -715,24 +715,51 @@ function selectStaff(id){
 }
 async function renderStep3(){
   const s=BK.svc;
+  // Get barber's custom duration for this service
+  const effDur=BK.staff?(BARBER_DURATIONS[s?.name]||s?.dur||30):(s?.dur||30);
   document.getElementById('svc-banner').innerHTML=s?`
     <div><div style="font-size:13px;color:var(--yellow);font-weight:600;margin-bottom:2px">${s.name}</div>
-    <div style="font-size:11px;color:var(--txt2)">${fmtDur(s.dur)}${BK.staff?' · with '+BK.staff.name:''}</div></div>
+    <div style="font-size:11px;color:var(--txt2)">${fmtDur(effDur)}${BK.staff?' · with '+BK.staff.name:''}</div></div>
     <div style="font-size:22px;font-weight:800;color:var(--yellow)">$${s.price}</div>`:'';
   await fetchBlockedDays();renderCal();if(BK.date)renderSlots();
 }
 let BLOCKED_DAYS=new Set();
-let STAFF_HOURS={}; // keyed by day_of_week 0-6
+let STAFF_HOURS={};
+let BARBER_DURATIONS={}; // {serviceName: durationMinutes} — per-barber overrides
+
+// Convert "2:30 PM" → minutes from midnight
+function timeToMins(t){
+  const[time,period]=t.split(' ');
+  let[h,m]=time.split(':').map(Number);
+  if(period==='PM'&&h!==12)h+=12;
+  if(period==='AM'&&h===12)h=0;
+  return h*60+m;
+}
+
+// Check if a slot is truly available considering service duration overlaps
+function isSlotAvailable(slotTime,newDur,existingBookings){
+  const slotStart=timeToMins(slotTime);
+  const slotEnd=slotStart+newDur;
+  for(const b of existingBookings){
+    const bStart=timeToMins(b.time);
+    const bEnd=bStart+(b.service_dur||30);
+    // Overlap if new booking starts before existing ends AND new booking ends after existing starts
+    if(slotStart<bEnd&&slotEnd>bStart)return false;
+  }
+  return true;
+}
 
 async function fetchBlockedDays(){
-  BLOCKED_DAYS=new Set();STAFF_HOURS={};
+  BLOCKED_DAYS=new Set();STAFF_HOURS={};BARBER_DURATIONS={};
   if(!BK.staff)return;
-  // Get one-off blocked dates
-  const{data:bd}=await SB.from('blocked_slots').select('date').eq('staff_id',BK.staff.id).eq('full_day',true);
-  (bd||[]).forEach(b=>BLOCKED_DAYS.add(b.date));
-  // Get weekly hours
-  const{data:wh}=await SB.from('staff_hours').select('*').eq('staff_id',BK.staff.id);
-  (wh||[]).forEach(h=>{STAFF_HOURS[h.day_of_week]={is_working:h.is_working,start_time:h.start_time,end_time:h.end_time}});
+  const[bd,wh,dd]=await Promise.all([
+    SB.from('blocked_slots').select('date').eq('staff_id',BK.staff.id).eq('full_day',true),
+    SB.from('staff_hours').select('*').eq('staff_id',BK.staff.id),
+    SB.from('staff_service_durations').select('*').eq('staff_id',BK.staff.id)
+  ]);
+  (bd.data||[]).forEach(b=>BLOCKED_DAYS.add(b.date));
+  (wh.data||[]).forEach(h=>{STAFF_HOURS[h.day_of_week]={is_working:h.is_working,start_time:h.start_time,end_time:h.end_time}});
+  (dd.data||[]).forEach(d=>{BARBER_DURATIONS[d.service_name]=d.duration_minutes});
 }
 
 function isBarberWorkingOn(dt){
@@ -786,12 +813,15 @@ async function selectDate(y,mo,d){
 async function renderSlots(){
   const sl=document.getElementById('slots-loading'),sg=document.getElementById('slots-grid');
   sl.classList.remove('hidden');sg.innerHTML='';
-  let takenTimes=[],dayBlocked=false;
+  // Use barber's custom duration if set, otherwise service default
+  const svcDur=BK.staff?(BARBER_DURATIONS[BK.svc?.name]||BK.svc?.dur||30):(BK.svc?.dur||30);
+  let existingBookings=[],dayBlocked=false;
   try{
-    const q=SB.from('bookings').select('time').eq('date',fmtISO(BK.date)).eq('status','confirmed');
+    // Fetch confirmed bookings WITH their duration so we can check overlaps
+    const q=SB.from('bookings').select('time,service_dur').eq('date',fmtISO(BK.date)).eq('status','confirmed');
     if(BK.staff)q.eq('staff_id',BK.staff.id);
     const{data:bkData}=await q;
-    takenTimes=(bkData||[]).map(b=>b.time);
+    existingBookings=(bkData||[]);
     if(BK.staff){
       const{data:blData}=await SB.from('blocked_slots').select('full_day').eq('staff_id',BK.staff.id).eq('date',fmtISO(BK.date)).eq('full_day',true);
       if(blData?.length)dayBlocked=true;
@@ -801,9 +831,17 @@ async function renderSlots(){
   if(dayBlocked){sg.innerHTML='<div style="color:var(--txt3);font-size:12px;grid-column:1/-1;padding:10px 0">Not available this day. Choose another date or barber.</div>';return}
   const workingTimes=getWorkingTimesFor(BK.date);
   if(!workingTimes.length){sg.innerHTML='<div style="color:var(--txt3);font-size:12px;grid-column:1/-1;padding:10px 0">This barber has this day off.</div>';return}
+  // Filter out slots where service would run past end of working hours
+  const endHour=BK.staff&&STAFF_HOURS[BK.date.getDay()]?.end_time
+    ?timeToMins(STAFF_HOURS[BK.date.getDay()].end_time):timeToMins('6:00 PM');
   sg.innerHTML=workingTimes.map(t=>{
-    const tk=takenTimes.includes(t),sel=BK.time===t;
-    return`<button class="slot-btn${sel?' sel':''}" ${tk?'disabled':''} onclick="selectTime('${t}')">${t}</button>`;
+    const slotMins=timeToMins(t);
+    // Slot unavailable if: service runs past end of shift OR overlaps existing booking
+    const pastEnd=slotMins+svcDur>endHour;
+    const overlaps=!isSlotAvailable(t,svcDur,existingBookings);
+    const unavailable=pastEnd||overlaps;
+    const sel=BK.time===t;
+    return`<button class="slot-btn${sel?' sel':''}" ${unavailable?'disabled':''} onclick="selectTime('${t}')">${t}</button>`;
   }).join('');
 }
 function selectTime(t){BK.time=t;document.querySelectorAll('.slot-btn').forEach(b=>b.classList.remove('sel'));event.target.classList.add('sel');document.getElementById('step3-next').disabled=false}
