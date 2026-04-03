@@ -599,10 +599,20 @@ window.addEventListener('scroll',()=>{
   const bg=document.getElementById('hero-bg');
   if(bg&&window.scrollY<window.innerHeight)bg.style.transform=`scale(1.06) translateY(${window.scrollY*0.25}px)`;
 });
-let STAFF_LIST=[],staffLoaded=false;
+let STAFF_LIST=[],staffLoaded=false,STAFF_SERVICES={};
 async function loadStaff(){
-  const{data}=await SB.from('staff').select('id,name,photo_url,role').order('name');
-  STAFF_LIST=data||[];staffLoaded=true;renderTeamGrid();
+  const[{data:sd},{data:svd}]=await Promise.all([
+    SB.from('staff').select('id,name,photo_url,role').order('name'),
+    SB.from('staff_services').select('staff_id,service_name')
+  ]);
+  STAFF_LIST=sd||[];staffLoaded=true;
+  // Build map: {staffId: Set<serviceName>}
+  STAFF_SERVICES={};
+  (svd||[]).forEach(r=>{
+    if(!STAFF_SERVICES[r.staff_id])STAFF_SERVICES[r.staff_id]=new Set();
+    STAFF_SERVICES[r.staff_id].add(r.service_name);
+  });
+  renderTeamGrid();
 }
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -621,13 +631,19 @@ function buildSvcCard(s,onclick){
     <div class="svc-card-meta"><span class="svc-card-dur">${fmtDur(s.dur)}</span><span class="svc-card-price">$${s.price}</span></div></div></div>`;
 }
 function renderTeamGrid(){
-  const barbers=STAFF_LIST.filter(s=>s.role==='barber');
+  const barbers=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin');
   document.getElementById('team-grid').innerHTML=barbers.map(s=>`
     <div class="team-card" onclick="openModal(null,null,'${s.id}')">
       <div class="team-card-photo">${s.photo_url?`<img src="${s.photo_url}" alt="${s.name}">`:`<div class="team-card-initials">${initials(s.name)}</div>`}</div>
       <div class="team-card-body"><div class="team-card-name">${s.name}</div><div class="team-card-role">Barber · Moody Fade</div></div>
       <div class="team-card-cta">Book →</div>
     </div>`).join('');
+}
+// Check if a barber offers a given service
+function barberOffersService(staffId,serviceName){
+  const set=STAFF_SERVICES[staffId];
+  if(!set||set.size===0)return true; // no assignments = offers all (backward compat)
+  return set.has(serviceName);
 }
 let activeCat='All Services';
 function renderServicesPage(){
@@ -695,15 +711,20 @@ function renderModalSvcs(){
 }
 function selectSvc(id){BK.svc=SVCS.find(s=>s.id===id);BK.step=2;renderStep()}
 function renderStep2(){
-  const barbers=STAFF_LIST.filter(s=>s.role==='barber');
+  // Only show barbers who offer the selected service
+  const barbers=STAFF_LIST.filter(s=>(s.role==='barber'||s.role==='admin')&&barberOffersService(s.id,BK.svc?.name));
   let html=`<div class="staff-card${BK.staff===null?' sel':''}" onclick="selectStaff(null)">
     <div class="staff-initials" style="background:#222;font-size:13px;color:var(--txt2);font-weight:700">ANY</div>
     <div class="staff-card-name">Any Available</div><div class="staff-card-any">First available barber</div></div>`;
-  html+=barbers.map(s=>{
-    const sel=BK.staff?.id===s.id;
-    const photo=s.photo_url?`<img src="${s.photo_url}" class="staff-photo">`:`<div class="staff-initials">${initials(s.name)}</div>`;
-    return`<div class="staff-card${sel?' sel':''}" onclick="selectStaff('${s.id}')">${photo}<div class="staff-card-name">${s.name}</div></div>`;
-  }).join('');
+  if(!barbers.length){
+    html+='<div style="grid-column:1/-1;font-size:12px;color:var(--txt3);padding:12px 0">No barbers available for this service yet.</div>';
+  }else{
+    html+=barbers.map(s=>{
+      const sel=BK.staff?.id===s.id;
+      const photo=s.photo_url?`<img src="${s.photo_url}" class="staff-photo">`:`<div class="staff-initials">${initials(s.name)}</div>`;
+      return`<div class="staff-card${sel?' sel':''}" onclick="selectStaff('${s.id}')">${photo}<div class="staff-card-name">${s.name}</div></div>`;
+    }).join('');
+  }
   document.getElementById('staff-grid').innerHTML=html;
   document.getElementById('step2-next').disabled=false;
 }
