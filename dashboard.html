@@ -63,6 +63,7 @@ input,select,textarea{font-family:var(--ff)}
 .top-right{display:flex;align-items:center;gap:14px}
 .top-user{font-size:12px;font-weight:600;color:var(--txt2)}
 .role-badge{font-size:7px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:3px 9px;border:1px solid}
+.role-developer{color:#000;background:#00E5FF;border-color:#00E5FF}
 .role-owner{color:#000;background:var(--yellow);border-color:var(--yellow)}
 .role-barber-admin{color:var(--yellow);background:var(--yellowbg);border-color:var(--yellow3)}
 .role-barber{color:var(--txt2);background:var(--surf2);border-color:var(--bdr2)}
@@ -407,9 +408,9 @@ input,select,textarea{font-family:var(--ff)}
       <div class="field"><label>Email *</label><input type="email" id="staff-modal-email" placeholder="blend@example.com"></div>
       <div class="field"><label>Role</label>
         <select id="staff-modal-role">
-          <option value="barber">Barber</option>
-          <option value="barber_admin">Barber Admin (barber + full access)</option>
-          <option value="owner">Owner (admin only, not a barber)</option>
+          <option value="barber">Barber — appears in booking calendar, own schedule only</option>
+          <option value="admin">Admin — full dashboard access, not a bookable barber</option>
+          <option value="developer">Developer — superuser, full access</option>
         </select>
       </div>
     </div>
@@ -417,6 +418,23 @@ input,select,textarea{font-family:var(--ff)}
     <div style="display:flex;gap:10px">
       <button class="btn btn-ghost" onclick="closeStaffModal()" style="flex:1;padding:11px">Cancel</button>
       <button class="btn btn-yellow" onclick="saveStaff()" style="flex:1;padding:11px" id="save-staff-btn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICES MODAL -->
+<div class="modal-overlay" id="services-modal">
+  <div class="modal-box" style="max-width:520px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-title" id="services-modal-title">Services</div>
+    <p style="font-size:12px;color:var(--txt3);margin-bottom:14px;font-weight:500">Check which services this barber offers. Unchecked services won't show them as an option when clients book.</p>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-ghost" onclick="checkAllServices(true)" style="padding:6px 12px;font-size:8px">Check All</button>
+      <button class="btn btn-ghost" onclick="checkAllServices(false)" style="padding:6px 12px;font-size:8px">Uncheck All</button>
+    </div>
+    <div id="services-modal-body" style="overflow-y:auto;flex:1;padding-right:4px"></div>
+    <div style="display:flex;gap:10px;margin-top:18px;flex-shrink:0">
+      <button class="btn btn-ghost" onclick="closeServicesModal()" style="flex:1;padding:11px">Cancel</button>
+      <button class="btn btn-yellow" onclick="saveStaffServices()" style="flex:1;padding:11px" id="save-services-btn">Save Services</button>
     </div>
   </div>
 </div>
@@ -432,13 +450,13 @@ const SB=createClient(
 let currentUser=null,currentStaff=null,allBookings=[],allStaff=[];
 let cancelTarget=null,editingStaffId=null,photoFile=null,isSignUp=false;
 
-/* ── ROLE HELPERS ── 
-   owner       → pure admin, not a barber, sees all
-   barber_admin → barber + full admin access, sees all + has own bookings
-   barber       → sees only own bookings, schedule only
+/* ── ROLE HELPERS ──
+   developer  → you (full access, superuser, not a bookable barber)
+   admin      → business owner, full access, not a bookable barber
+   barber     → appears in booking calendar, sees own schedule only
 */
-function isAdmin(){return currentStaff&&(currentStaff.role==='owner'||currentStaff.role==='barber_admin')}
-function isBarber(){return currentStaff&&(currentStaff.role==='barber'||currentStaff.role==='barber_admin')}
+function isAdmin(){return currentStaff&&(currentStaff.role==='developer'||currentStaff.role==='admin')}
+function isDeveloper(){return currentStaff&&currentStaff.role==='developer'}
 
 /* ── AUTH ── */
 function toggleAuthMode(){
@@ -489,8 +507,8 @@ async function initApp(user){
 
   // Role badge
   const badge=document.getElementById('role-badge');
-  if(data.role==='owner'){badge.textContent='Owner';badge.className='role-badge role-owner'}
-  else if(data.role==='barber_admin'){badge.textContent='Barber Admin';badge.className='role-badge role-barber-admin'}
+  if(data.role==='developer'){badge.textContent='Developer';badge.className='role-badge role-developer'}
+  else if(data.role==='admin'){badge.textContent='Admin';badge.className='role-badge role-barber-admin'}
   else{badge.textContent='Barber';badge.className='role-badge role-barber'}
 
   // Show admin-only elements for owner + barber_admin
@@ -515,10 +533,16 @@ async function loadAll(){await Promise.all([loadBookings(),loadStaffList()]);ren
 
 async function loadBookings(){
   let q=SB.from('bookings').select('*').order('date',{ascending:false}).order('time',{ascending:false});
-  // barber sees only own; owner sees all; barber_admin sees all (they're admin)
-  if(currentStaff.role==='barber')q=q.eq('staff_id',currentStaff.id);
+  // barber sees only own; admin + developer see all
+  if(currentStaff.role==='barber') q=q.eq('staff_id',currentStaff.id);
   const{data}=await q;
   allBookings=data||[];
+}
+
+// For Today view — admin/developer see all; barber sees own
+function getTodayBookings(todStr){
+  if(currentStaff.role==='barber') return allBookings.filter(b=>b.date===todStr);
+  return allBookings.filter(b=>b.date===todStr);
 }
 
 async function loadStaffList(){
@@ -811,7 +835,7 @@ async function saveDurations(){
 /* ── STAFF MANAGEMENT ── */
 function initials(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
 
-const ROLE_LABELS={owner:'Owner',barber_admin:'Barber Admin',barber:'Barber'};
+const ROLE_LABELS={developer:'Developer',admin:'Admin',barber:'Barber'};
 
 function renderStaffList(){
   if(!isAdmin())return;
@@ -826,6 +850,7 @@ function renderStaffList(){
         <div class="staff-row-role ${s.role}">${ROLE_LABELS[s.role]||s.role}</div>
       </div>
       <div class="staff-actions">
+        ${s.role==='barber'?`<button class="btn btn-outline" onclick="openServicesModal('${s.id}')" style="padding:6px 10px;font-size:8px">✦ Services</button>`:''}
         <label for="photo-${s.id}" class="btn btn-ghost" style="cursor:pointer;padding:6px 10px;font-size:8px">📷 Photo</label>
         <input type="file" id="photo-${s.id}" accept="image/*" style="display:none" onchange="uploadStaffPhoto('${s.id}',this)">
         <button class="btn btn-ghost" onclick="openEditStaff('${s.id}')" style="padding:6px 10px;font-size:8px">Edit</button>
@@ -906,6 +931,61 @@ async function saveStaff(){
 }
 
 function closeStaffModal(){document.getElementById('staff-modal').classList.remove('open')}
+
+/* ── STAFF SERVICES ── */
+const SVC_CATS={
+  'Regular Haircuts':['Adult Haircut','Senior Haircut','Skin Fade','Kids Haircut','Long Hair Scissors Trim','High School Student','Buzz Cut','Head Shave'],
+  'Deluxe Packages':['Haircut + Beard + Facial','Skin Fade + Beard Trim','Haircut + Beard Trim','Head Shave + Beard Trim'],
+  'Beard & Line-ups':['Beard Trim & Lineup','Hot Towel Shave'],
+  'Detailing & Add-Ons':['Eyebrow Trim','Ear & Nose Wax','Design','Head Wash','Face Wax','Face Mask','Skin Steam Facial','Hair & Beard Products'],
+  'Colours':['Permanent Hair Colour (Dark Brown/Black)','Permanent Beard Colour (Dark Brown/Black)','Hair & Beard Colour Combo','Temporary Colours']
+};
+let editingServicesStaffId=null;
+
+async function openServicesModal(staffId){
+  const s=allStaff.find(x=>x.id===staffId);if(!s)return;
+  editingServicesStaffId=staffId;
+  document.getElementById('services-modal-title').textContent=`Services — ${s.name}`;
+  document.getElementById('services-modal-body').innerHTML='<div class="loading-state">Loading…</div>';
+  document.getElementById('services-modal').classList.add('open');
+  const{data}=await SB.from('staff_services').select('service_name').eq('staff_id',staffId);
+  const assigned=new Set((data||[]).map(r=>r.service_name));
+  const allChecked=assigned.size===0; // no assignments = offer all (backward compat)
+  document.getElementById('services-modal-body').innerHTML=Object.entries(SVC_CATS).map(([cat,svcs])=>`
+    <div style="margin-bottom:18px">
+      <div style="font-size:8px;font-weight:700;letter-spacing:2.5px;color:var(--yellow);text-transform:uppercase;margin-bottom:8px">${cat}</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        ${svcs.map(name=>{
+          const checked=allChecked||assigned.has(name);
+          const sid='svc-cb-'+name.replace(/[^a-zA-Z0-9]/g,'-');
+          return`<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surf3);border:1px solid var(--bdr);cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='var(--bdr2)'" onmouseout="this.style.borderColor='var(--bdr)'">
+            <input type="checkbox" id="${sid}" value="${name}" ${checked?'checked':''} style="accent-color:var(--yellow);width:15px;height:15px;flex-shrink:0">
+            <span style="font-size:13px;color:#fff;flex:1;font-weight:500">${esc(name)}</span>
+          </label>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function checkAllServices(state){
+  document.querySelectorAll('#services-modal-body input[type=checkbox]').forEach(cb=>cb.checked=state);
+}
+
+async function saveStaffServices(){
+  const btn=document.getElementById('save-services-btn');
+  btn.disabled=true;btn.textContent='Saving…';
+  const checked=[...document.querySelectorAll('#services-modal-body input[type=checkbox]:checked')].map(cb=>cb.value);
+  await SB.from('staff_services').delete().eq('staff_id',editingServicesStaffId);
+  if(checked.length)await SB.from('staff_services').insert(checked.map(svc=>({staff_id:editingServicesStaffId,service_name:svc})));
+  btn.disabled=false;btn.textContent='Save Services';
+  btn.style.background='var(--green)';btn.style.color='#000';
+  setTimeout(()=>{btn.style.background='';btn.style.color='';closeServicesModal()},800);
+}
+
+function closeServicesModal(){
+  document.getElementById('services-modal').classList.remove('open');
+  editingServicesStaffId=null;
+}
 
 /* ── UTILS ── */
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
