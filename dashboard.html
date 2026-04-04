@@ -448,7 +448,7 @@ const SB=createClient(
 
 /* ── STATE ── */
 let currentUser=null,currentStaff=null,allBookings=[],allStaff=[];
-let cancelTarget=null,editingStaffId=null,photoFile=null,isSignUp=false;
+let cancelTarget=null,editingStaffId=null,photoFile=null,isSignUp=false; const PAGE_SIZE=50; let bookingsPage=0,bookingsTotal=0,hasMoreBookings=true;
 
 /* ── ROLE HELPERS ──
    developer  → you (full access, superuser, not a bookable barber)
@@ -532,12 +532,16 @@ async function signOut(){await SB.auth.signOut();location.reload()}
 /* ── LOAD DATA ── */
 async function loadAll(){await Promise.all([loadBookings(),loadStaffList()]);renderTodayView();renderBookingsTable();renderStaffList()}
 
-async function loadBookings(){
-  let q=SB.from('bookings').select('*').order('date',{ascending:false}).order('time',{ascending:false});
-  // barber sees only own; admin + developer see all
+async function loadBookings(reset=true){
+  if(reset){bookingsPage=0;allBookings=[];hasMoreBookings=true}
+  const from=bookingsPage*PAGE_SIZE;
+  const to=from+PAGE_SIZE-1;
+  let q=SB.from('bookings').select('*',{count:'exact'}).order('date',{ascending:false}).order('time',{ascending:false}).range(from,to);
   if(currentStaff.role==='barber') q=q.eq('staff_id',currentStaff.id);
-  const{data}=await q;
-  allBookings=data||[];
+  const{data,count}=await q;
+  if(reset){allBookings=data||[]}else{allBookings=allBookings.concat(data||[])}
+  bookingsTotal=count||0;
+  hasMoreBookings=allBookings.length<bookingsTotal;
 }
 
 // For Today view — admin/developer see all; barber sees own
@@ -597,6 +601,20 @@ function applyFilters(){
   document.getElementById('bookings-tbody').innerHTML=filtered.length
     ?filtered.map(b=>buildBookingRow(b)).join('')
     :'<tr><td colspan="6" class="empty-state">No bookings match your filters.</td></tr>';
+  const paginationEl=document.getElementById('bookings-pagination');
+  if(paginationEl)paginationEl.remove();
+  if(hasMoreBookings){
+    const div=document.createElement('div');
+    div.id='bookings-pagination';
+    div.style.cssText='text-align:center;padding:18px';
+    div.innerHTML=`<button class="btn btn-outline" onclick="loadMoreBookings()" style="padding:10px 24px">Load More (${allBookings.length} of ${bookingsTotal})</button>`;
+    document.getElementById('bookings-tbody').closest('.table-wrap').after(div);
+  }
+}
+  async function loadMoreBookings(){
+  bookingsPage++;
+  await loadBookings(false);
+  renderBookingsTable();
 }
 function clearFilters(){
   ['search-input','filter-status','filter-staff','filter-date'].forEach(id=>{
