@@ -849,12 +849,12 @@ async function unblockDate(date){
 
 /* ── SERVICE DURATIONS ── */
 const ALL_SVCS=[
-  {name:'Adult Haircut',dur:45},{name:'Senior Haircut',dur:30},
-  {name:'Skin Fade',dur:40},{name:'Kids Haircut',dur:30},
+  {name:'Adult Haircut',dur:45},{name:'Senior',dur:30},
+  {name:'Skin Fade',dur:40},{name:'Kids',dur:30},
   {name:'Long Hair Scissors Trim',dur:60},{name:'High School Student',dur:30},
-  {name:'Buzz Cut',dur:15},{name:'Head Shave',dur:30},
-  {name:'Haircut + Beard + Facial',dur:60},{name:'Skin Fade + Beard Trim',dur:45},
-  {name:'Haircut + Beard Trim',dur:45},{name:'Head Shave + Beard Trim',dur:30},
+  {name:'Buzz Cut',dur:15},{name:'Head Shave (Straight Razor)',dur:30},
+  {name:'Haircut & Beard & Skin Facial',dur:60},{name:'Skin Fade & Beard Trim',dur:45},
+  {name:'Haircut & Beard Trim',dur:45},{name:'Head Shave & Beard Trim',dur:30},
   {name:'Beard Trim & Lineup',dur:30},{name:'Hot Towel Shave',dur:20},
   {name:'Eyebrow Trim',dur:15},{name:'Ear & Nose Wax',dur:10},
   {name:'Design',dur:10},{name:'Head Wash',dur:5},
@@ -1007,8 +1007,8 @@ function closeStaffModal(){document.getElementById('staff-modal').classList.remo
 
 /* ── STAFF SERVICES ── */
 const SVC_CATS={
-  'Regular Haircuts':['Adult Haircut','Senior Haircut','Skin Fade','Kids Haircut','Long Hair Scissors Trim','High School Student','Buzz Cut','Head Shave'],
-  'Deluxe Packages':['Haircut + Beard + Facial','Skin Fade + Beard Trim','Haircut + Beard Trim','Head Shave + Beard Trim'],
+  'Regular Haircuts':['Adult Haircut','Senior','Skin Fade','Kids','Long Hair Scissors Trim','High School Student','Buzz Cut','Head Shave (Straight Razor)'],
+  'Deluxe Packages':['Haircut & Beard & Skin Facial','Skin Fade & Beard Trim','Haircut & Beard Trim','Head Shave & Beard Trim'],
   'Beard & Line-ups':['Beard Trim & Lineup','Hot Towel Shave'],
   'Detailing & Add-Ons':['Eyebrow Trim','Ear & Nose Wax','Design','Head Wash','Face Wax','Face Mask','Skin Steam Facial','Hair & Beard Products'],
   'Colours':['Permanent Hair Colour (Dark Brown/Black)','Permanent Beard Colour (Dark Brown/Black)','Hair & Beard Colour Combo','Temporary Colours']
