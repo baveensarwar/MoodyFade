@@ -706,8 +706,14 @@ function refreshRevenueStats(){
 }
 
 async function markComplete(id){
-  await SB.from('bookings').update({status:'completed'}).eq('id',id);
-  await loadBookings();renderTodayView();renderBookingsTable();
+  const btn=event.target;btn.disabled=true;btn.textContent='Saving…';
+  try{
+    await SB.from('bookings').update({status:'completed'}).eq('id',id);
+    await loadBookings();renderTodayView();renderBookingsTable();
+  }catch(e){
+    btn.disabled=false;btn.textContent='✓ Done';
+    alert('Failed to update. Please try again.');
+  }
 }
 
 function openCancelModal(id){
@@ -721,9 +727,14 @@ async function confirmCancel(){
   if(!cancelTarget)return;
   const btn=document.getElementById('confirm-cancel-btn');
   btn.disabled=true;btn.textContent='Cancelling…';
-  await SB.from('bookings').update({status:'cancelled'}).eq('id',cancelTarget);
-  btn.disabled=false;btn.textContent='Yes, Cancel';
-  closeCancelModal();await loadBookings();renderTodayView();renderBookingsTable();
+  try{
+    await SB.from('bookings').update({status:'cancelled'}).eq('id',cancelTarget);
+    closeCancelModal();await loadBookings();renderTodayView();renderBookingsTable();
+  }catch(e){
+    alert('Failed to cancel. Please try again.');
+  }finally{
+    btn.disabled=false;btn.textContent='Yes, Cancel';
+  }
 }
 
 /* ── SCHEDULE ── */
@@ -811,7 +822,7 @@ async function saveWeeklyHours(){
     btn.textContent='Saved ✓';
     btn.style.background='var(--green)';btn.style.color='#000';
     setTimeout(()=>{btn.textContent='Save Hours';btn.style.background='';btn.style.color='';btn.disabled=false},2000);
-  }catch(e){btn.disabled=false;btn.textContent='Save Hours'}
+  }catch(e){btn.disabled=false;btn.textContent='Save Hours';alert('Failed to save hours. Please try again.')}
 }
 
 async function loadBlockedSlots(){
