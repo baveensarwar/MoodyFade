@@ -153,6 +153,126 @@ input,select,textarea{font-family:var(--ff)}
 .hours-times select{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);padding:6px 10px;font-size:12px;font-family:var(--ff);outline:none;min-width:100px}
 .hours-times select:focus{border-color:var(--yellow)}
 .hours-times.disabled{opacity:.3;pointer-events:none}
+  .calendar-sync-card{
+  position:relative;
+  overflow:hidden;
+}
+
+.calendar-sync-card::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg, rgba(255,203,5,.05), transparent 42%);
+  pointer-events:none;
+}
+
+.calendar-sync-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:12px;
+  position:relative;
+  z-index:1;
+}
+
+.calendar-sync-kicker{
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--yellow);
+  margin-bottom:6px;
+}
+
+.calendar-sync-title{
+  font-size:22px;
+  line-height:1.05;
+  font-weight:900;
+  color:#fff;
+  letter-spacing:-.4px;
+}
+
+.calendar-sync-badge{
+  flex-shrink:0;
+  border:1px solid var(--yellow3);
+  background:var(--yellowbg);
+  color:var(--yellow);
+  padding:7px 10px;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+
+.calendar-sync-copy{
+  background:var(--surf3);
+  border:1px solid var(--bdr);
+  padding:14px 16px;
+  margin:14px 0 16px;
+  position:relative;
+  z-index:1;
+}
+
+.calendar-sync-copy-label{
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--txt3);
+  margin-bottom:8px;
+}
+
+.calendar-sync-url{
+  font-size:12px;
+  color:var(--txt2);
+  word-break:break-all;
+  line-height:1.5;
+}
+
+.calendar-sync-url.is-placeholder{
+  color:var(--txt3);
+}
+
+.calendar-sync-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  position:relative;
+  z-index:1;
+}
+
+.calendar-sync-actions .btn{
+  padding:9px 14px;
+}
+
+.calendar-sync-help{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:12px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--txt2);
+  text-decoration:none;
+  position:relative;
+  z-index:1;
+}
+
+.calendar-sync-help:hover{
+  color:var(--yellow);
+}
+
+.calendar-sync-note{
+  margin-top:10px;
+  font-size:11px;
+  color:var(--txt3);
+  font-weight:500;
+  position:relative;
+  z-index:1;
+}
 
 /* MODALS */
 .modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(10,10,10,.88);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:16px}
@@ -209,6 +329,23 @@ input,select,textarea{font-family:var(--ff)}
   .hours-times{flex-wrap:wrap;gap:4px}
   .hours-times select{min-width:90px;font-size:11px;padding:5px 8px}
   .hours-times span{display:none}
+  .calendar-sync-head{
+  flex-direction:column;
+  align-items:flex-start;
+}
+
+.calendar-sync-title{
+  font-size:18px;
+}
+
+.calendar-sync-actions{
+  flex-direction:column;
+}
+
+.calendar-sync-actions .btn{
+  width:100%;
+  justify-content:center;
+}
 
   /* Modal */
   .modal-box{padding:20px;max-width:100%}
@@ -326,6 +463,44 @@ input,select,textarea{font-family:var(--ff)}
         </div>
 
         <!-- WEEKLY HOURS -->
+        <div class="schedule-section calendar-sync-card hidden" id="calendar-sync-card">
+  <div class="calendar-sync-head">
+    <div>
+      <div class="calendar-sync-kicker">Apple Calendar Sync</div>
+      <div class="calendar-sync-title">Sync confirmed appointments to Apple Calendar</div>
+    </div>
+
+    <div class="calendar-sync-badge">Read-only</div>
+  </div>
+
+  <p style="font-size:12px;color:var(--txt2);margin-bottom:0;font-weight:500;position:relative;z-index:1">
+    Subscribe to your confirmed appointments on iPhone, iPad, or Mac. Moody Fade stays in control of all booking changes.
+  </p>
+
+  <div class="calendar-sync-copy">
+    <div class="calendar-sync-copy-label">Private calendar link</div>
+    <div class="calendar-sync-url is-placeholder" id="calendar-sync-url">No sync link generated yet.</div>
+  </div>
+
+  <div class="calendar-sync-actions">
+    <button class="btn btn-yellow" id="calendar-sync-generate-btn" onclick="generateCalendarSyncLink()">Generate Sync Link</button>
+    <button class="btn btn-ghost" id="calendar-sync-copy-btn" onclick="copyCalendarSyncLink()" disabled>Copy Link</button>
+    <button class="btn btn-ghost" id="calendar-sync-regenerate-btn" onclick="regenerateCalendarSyncLink()" disabled>Regenerate Link</button>
+  </div>
+
+  <a
+    class="calendar-sync-help"
+    href="https://support.apple.com/en-ca/guide/iphone/iph3d1110d4/ios"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    How to add on iPhone
+  </a>
+
+  <div class="calendar-sync-note" id="calendar-sync-note">
+    UI is ready. Connect the private barber calendar feed backend next.
+  </div>
+</div>
         <div class="schedule-section">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
             <div class="schedule-section-title" style="margin-bottom:0">Weekly Working Hours</div>
@@ -501,6 +676,7 @@ async function initApp(user){
     await SB.auth.signOut();return;
   }
   currentStaff=data;
+  renderCalendarSyncCard();
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').classList.add('show');
   document.getElementById('top-user').textContent=data.name;
@@ -758,6 +934,83 @@ async function confirmCancel(){
 
 /* ── SCHEDULE ── */
 const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  let calendarSyncLink='';
+
+function renderCalendarSyncCard(){
+  const card=document.getElementById('calendar-sync-card');
+  if(!card) return;
+
+  const isBarber=currentStaff?.role==='barber';
+  card.classList.toggle('hidden', !isBarber);
+  if(!isBarber) return;
+
+  const urlEl=document.getElementById('calendar-sync-url');
+  const copyBtn=document.getElementById('calendar-sync-copy-btn');
+  const regenBtn=document.getElementById('calendar-sync-regenerate-btn');
+  const noteEl=document.getElementById('calendar-sync-note');
+
+  if(calendarSyncLink){
+    urlEl.textContent=calendarSyncLink;
+    urlEl.classList.remove('is-placeholder');
+    copyBtn.disabled=false;
+    regenBtn.disabled=false;
+    noteEl.textContent='This is read-only. Moody Fade remains the source of truth for booking changes.';
+  }else{
+    urlEl.textContent='No sync link generated yet.';
+    urlEl.classList.add('is-placeholder');
+    copyBtn.disabled=true;
+    regenBtn.disabled=true;
+    noteEl.textContent='UI is ready. Connect the private barber calendar feed backend next.';
+  }
+}
+
+async function generateCalendarSyncLink(){
+  const btn=document.getElementById('calendar-sync-generate-btn');
+  if(!btn) return;
+
+  const original=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='Generating…';
+
+  try{
+    // TODO: replace this with your Supabase Edge Function / RPC call
+    // Expected result shape: { url: 'https://.../barber-calendar/<token>.ics' }
+
+    alert('Apple Calendar Sync UI is now in place. The next step is connecting this button to your private .ics backend.');
+  }catch(e){
+    alert('Failed to generate sync link. Please try again.');
+  }finally{
+    btn.disabled=false;
+    btn.textContent=original;
+    renderCalendarSyncCard();
+  }
+}
+
+async function regenerateCalendarSyncLink(){
+  if(!calendarSyncLink){
+    generateCalendarSyncLink();
+    return;
+  }
+
+  alert('Link regeneration needs the backend token rotation endpoint. The UI is ready, but the server part still needs to be connected.');
+}
+
+async function copyCalendarSyncLink(){
+  if(!calendarSyncLink) return;
+
+  try{
+    await navigator.clipboard.writeText(calendarSyncLink);
+
+    const btn=document.getElementById('calendar-sync-copy-btn');
+    if(btn){
+      const original=btn.textContent;
+      btn.textContent='Copied';
+      setTimeout(()=>{btn.textContent=original;},1200);
+    }
+  }catch(e){
+    alert('Could not copy the link. Please copy it manually.');
+  }
+}
 const ALL_TIMES=['6:00 AM','6:30 AM','7:00 AM','7:30 AM','8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM'];
 // Default: Mon-Sat 9AM-6PM, Sun off
 const DEFAULT_HOURS=[
@@ -772,6 +1025,7 @@ const DEFAULT_HOURS=[
 let weeklyHours=[...DEFAULT_HOURS]; // local state for the UI
 
 function initScheduleView(){
+  renderCalendarSyncCard();
   const t=new Date().toISOString().split('T')[0];
   document.getElementById('block-date').min=t;
   loadWeeklyHours();
