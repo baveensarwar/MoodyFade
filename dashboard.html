@@ -517,6 +517,7 @@ async function initApp(user){
   }
 
   document.getElementById('today-date').textContent=new Date().toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  await loadServicesDB();
   await loadAll();
 }
 
@@ -859,22 +860,7 @@ async function unblockDate(date){
 }
 
 /* ── SERVICE DURATIONS ── */
-const ALL_SVCS=[
-  {name:'Adult Haircut',dur:45},{name:'Senior',dur:30},
-  {name:'Skin Fade',dur:40},{name:'Kids',dur:30},
-  {name:'Long Hair Scissors Trim',dur:60},{name:'High School Student',dur:30},
-  {name:'Buzz Cut',dur:15},{name:'Head Shave (Straight Razor)',dur:30},
-  {name:'Haircut & Beard & Skin Facial',dur:60},{name:'Skin Fade & Beard Trim',dur:45},
-  {name:'Haircut & Beard Trim',dur:45},{name:'Head Shave & Beard Trim',dur:30},
-  {name:'Beard Trim & Lineup',dur:30},{name:'Hot Towel Shave',dur:20},
-  {name:'Eyebrow Trim',dur:15},{name:'Ear & Nose Wax',dur:10},
-  {name:'Design',dur:10},{name:'Head Wash',dur:5},
-  {name:'Face Wax',dur:5},{name:'Face Mask',dur:15},
-  {name:'Skin Steam Facial',dur:45},{name:'Hair & Beard Products',dur:5},
-  {name:'Permanent Hair Colour (Dark Brown/Black)',dur:30},
-  {name:'Permanent Beard Colour (Dark Brown/Black)',dur:15},
-  {name:'Hair & Beard Colour Combo',dur:30},{name:'Temporary Colours',dur:5},
-];
+
 
 async function loadDurations(){
   const{data}=await SB.from('staff_service_durations').select('*').eq('staff_id',currentStaff.id);
@@ -1017,13 +1003,17 @@ async function saveStaff(){
 function closeStaffModal(){document.getElementById('staff-modal').classList.remove('open')}
 
 /* ── STAFF SERVICES ── */
-const SVC_CATS={
-  'Regular Haircuts':['Adult Haircut','Senior','Skin Fade','Kids','Long Hair Scissors Trim','High School Student','Buzz Cut','Head Shave (Straight Razor)'],
-  'Deluxe Packages':['Haircut & Beard & Skin Facial','Skin Fade & Beard Trim','Haircut & Beard Trim','Head Shave & Beard Trim'],
-  'Beard & Line-ups':['Beard Trim & Lineup','Hot Towel Shave'],
-  'Detailing & Add-Ons':['Eyebrow Trim','Ear & Nose Wax','Design','Head Wash','Face Wax','Face Mask','Skin Steam Facial','Hair & Beard Products'],
-  'Colours':['Permanent Hair Colour (Dark Brown/Black)','Permanent Beard Colour (Dark Brown/Black)','Hair & Beard Colour Combo','Temporary Colours']
-};
+let ALL_SVCS=[];
+let SVC_CATS={};
+async function loadServicesDB(){
+  const{data}=await SB.from('services').select('*').eq('active',true).order('sort_order');
+  ALL_SVCS=(data||[]).map(s=>({name:s.name,dur:s.duration_minutes}));
+  SVC_CATS={};
+  (data||[]).forEach(s=>{
+    if(!SVC_CATS[s.category])SVC_CATS[s.category]=[];
+    SVC_CATS[s.category].push(s.name);
+  });
+}
 let editingServicesStaffId=null;
 
 async function openServicesModal(staffId){
