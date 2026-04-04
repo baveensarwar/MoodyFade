@@ -594,6 +594,7 @@ const fmtDate=d=>d?d.toLocaleDateString('en-CA',{weekday:'long',month:'long',day
 const fmtDateShort=d=>d?d.toLocaleDateString('en-CA',{month:'short',day:'numeric'}):'';
 const fmtISO=d=>{if(!d)return'';const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`};;
 function initials(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
+function to12h(t){if(!t)return t;if(t.includes('AM')||t.includes('PM'))return t;const[h,m]=t.split(':').map(Number);const p=h>=12?'PM':'AM';const h12=h===0?12:h>12?h-12:h;return`${h12}:${String(m).padStart(2,'0')} ${p}`}
 window.addEventListener('scroll',()=>{
   document.getElementById('nav').classList.toggle('scrolled',window.scrollY>40);
   const bg=document.getElementById('hero-bg');
@@ -892,7 +893,7 @@ async function renderSlots(){
       if(barberIds.length)bkQuery=bkQuery.in('staff_id',barberIds);
     }
     const{data:bkData,error:bkErr}=await bkQuery;
-    if(!bkErr) existingBookings=bkData||[];
+    if(!bkErr) existingBookings=(bkData||[]).map(b=>({...b,time:to12h(b.time)}));
 
     if(BK.staff){
       const{data:blData}=await SB.from('blocked_slots')
@@ -984,7 +985,6 @@ async function submitBooking(){
   const errEl=document.getElementById('book-error');errEl.classList.add('hidden');
   if(!name||!email){errEl.textContent='Name and email are required.';errEl.classList.remove('hidden');return}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='Please enter a valid email address.';errEl.classList.remove('hidden');return}
-  if(!['barber','admin','developer'].includes(role)){errEl.textContent='Invalid role selected.';errEl.classList.remove('hidden');return}
   BK.info={name,email,phone:document.getElementById('f-phone').value.trim(),notes:document.getElementById('f-notes').value.trim()};
   const btn=document.getElementById('step4-confirm-btn');btn.disabled=true;btn.textContent='Booking…';
   try{
