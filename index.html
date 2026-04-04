@@ -557,35 +557,14 @@ footer{background:#000;border-top:3px solid var(--yellow)}
 <script>
 const {createClient}=supabase;
 const SB=createClient('https://bljvdmzngedsgzpmckyy.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsanZkbXpuZ2Vkc2d6cG1ja3l5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMTY4MDYsImV4cCI6MjA5MDU5MjgwNn0.pZ9zkBGKRRzQIBajqXbfP4O5aO2gPVaN6ws-jloQgr0');
-const SVCS=[
-  {id:1,name:'Adult Haircut',cat:'Regular Haircuts',dur:45,price:27},
-  {id:2,name:'Senior',cat:'Regular Haircuts',dur:30,price:23},
-  {id:3,name:'Skin Fade',cat:'Regular Haircuts',dur:40,price:30},
-  {id:4,name:'Kids',cat:'Regular Haircuts',dur:30,price:23},
-  {id:5,name:'Long Hair Scissors Trim',cat:'Regular Haircuts',dur:60,price:30},
-  {id:6,name:'High School Student',cat:'Regular Haircuts',dur:30,price:25},
-  {id:7,name:'Buzz Cut',cat:'Regular Haircuts',dur:15,price:20},
-  {id:8,name:'Head Shave (Straight Razor)',cat:'Regular Haircuts',dur:30,price:30},
-  {id:9,name:'Haircut & Beard & Skin Facial',cat:'Deluxe Packages',dur:60,price:80},
-  {id:10,name:'Skin Fade & Beard Trim',cat:'Deluxe Packages',dur:45,price:43},
-  {id:11,name:'Haircut & Beard Trim',cat:'Deluxe Packages',dur:45,price:40},
-  {id:12,name:'Head Shave & Beard Trim',cat:'Deluxe Packages',dur:30,price:32},
-  {id:13,name:'Beard Trim & Lineup',cat:'Beard & Line-ups',dur:30,price:20},
-  {id:14,name:'Hot Towel Shave',cat:'Beard & Line-ups',dur:20,price:20},
-  {id:15,name:'Eyebrow Trim',cat:'Detailing & Add-Ons',dur:15,price:10},
-  {id:16,name:'Ear & Nose Wax',cat:'Detailing & Add-Ons',dur:10,price:5},
-  {id:17,name:'Design',cat:'Detailing & Add-Ons',dur:10,price:7},
-  {id:18,name:'Head Wash',cat:'Detailing & Add-Ons',dur:5,price:5},
-  {id:19,name:'Face Wax',cat:'Detailing & Add-Ons',dur:5,price:7},
-  {id:20,name:'Face Mask',cat:'Detailing & Add-Ons',dur:15,price:10},
-  {id:21,name:'Skin Steam Facial',cat:'Detailing & Add-Ons',dur:45,price:50},
-  {id:22,name:'Hair & Beard Products',cat:'Detailing & Add-Ons',dur:5,price:20},
-  {id:23,name:'Permanent Hair Colour (Dark Brown/Black)',cat:'Colours',dur:30,price:30},
-  {id:24,name:'Permanent Beard Colour (Dark Brown/Black)',cat:'Colours',dur:15,price:20},
-  {id:25,name:'Hair & Beard Colour Combo',cat:'Colours',dur:30,price:40},
-  {id:26,name:'Temporary Colours',cat:'Colours',dur:5,price:7},
-];
-const CATS=['All Services','Regular Haircuts','Deluxe Packages','Beard & Line-ups','Detailing & Add-Ons','Colours'];
+let SVCS=[];
+let CATS=['All Services'];
+async function loadServices(){
+  const{data}=await SB.from('services').select('*').eq('active',true).order('sort_order');
+  SVCS=(data||[]).map(s=>({id:s.id,name:s.name,cat:s.category,dur:s.duration_minutes,price:s.price}));
+  const catSet=new Set(SVCS.map(s=>s.cat));
+  CATS=['All Services',...catSet];
+}
 const CAT_ICONS={'Regular Haircuts':'✂','Deluxe Packages':'◈','Beard & Line-ups':'◎','Detailing & Add-Ons':'◇','Colours':'◉'};
 const TIMES=['6:00 AM','6:30 AM','7:00 AM','7:30 AM','8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM'];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1010,7 +989,7 @@ function renderStep5(){
     <span class="sk">Price</span><span class="sv-price">$${BK.svc?.price||0} CAD</span>`;
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-loadStaff();
+loadServices().then(()=>loadStaff());
 </script>
 </body>
 </html>
