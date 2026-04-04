@@ -629,7 +629,7 @@ function buildBookingRow(b){
   return`<tr id="row-${b.id}">
     <td><div class="client-name">${esc(b.client_name)}</div><div class="client-email">${esc(b.client_email)}</div>${b.client_phone?`<div class="client-email">${esc(b.client_phone)}</div>`:''}</td>
     <td><div class="svc-name">${esc(b.service_name)}</div>${priceHtml}</td>
-    <td><div class="date-cell">${esc(b.date)}</div><div class="time-cell">${esc(b.time)}</div></td>
+    <td><div class="date-cell">${esc(b.date)}</div><div class="time-cell">${esc(to12h(b.time))}</div></td>
     ${isAdmin()?`<td class="staff-cell">${esc(b.staff_name||'Any')}</td>`:''}
     <td><span class="status-badge ${sCls}">${sLbl}</span></td>
     <td><div class="action-btns">${actions||'<span style="font-size:10px;color:var(--txt3)">—</span>'}</div></td>
@@ -1072,6 +1072,7 @@ function closeServicesModal(){
 }
 
 /* ── UTILS ── */
+  function to12h(t){if(!t)return t;if(t.includes('AM')||t.includes('PM'))return t;const[h,m]=t.split(':').map(Number);const p=h>=12?'PM':'AM';const h12=h===0?12:h>12?h-12:h;return`${h12}:${String(m).padStart(2,'0')} ${p}`}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 document.querySelectorAll('.modal-overlay').forEach(m=>{
