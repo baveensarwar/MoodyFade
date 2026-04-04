@@ -982,7 +982,8 @@ function renderStep4(){
 async function submitBooking(){
   const name=document.getElementById('f-name').value.trim(),email=document.getElementById('f-email').value.trim();
   const errEl=document.getElementById('book-error');errEl.classList.add('hidden');
-  if(!name||!email){errEl.textContent='Please enter your name and email.';errEl.classList.remove('hidden');return}
+  if(!name||!email){errEl.textContent='Please enter your name and email.';errEl.classList.remove('hidden');return}  
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='Please enter a valid email address.';errEl.classList.remove('hidden');return}
   BK.info={name,email,phone:document.getElementById('f-phone').value.trim(),notes:document.getElementById('f-notes').value.trim()};
   const btn=document.getElementById('step4-confirm-btn');btn.disabled=true;btn.textContent='Booking…';
   try{
