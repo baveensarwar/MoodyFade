@@ -533,7 +533,7 @@ footer{background:#000;border-top:3px solid var(--yellow)}
         <div style="display:flex;flex-direction:column;gap:14px">
           <div class="field"><label>Full Name *</label><input type="text" id="f-name" placeholder="John Smith"></div>
           <div class="field"><label>Email *</label><input type="email" id="f-email" placeholder="john@example.com"></div>
-          <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="+1 (604) 000-0000"></div>
+          <div class="field"><label>Phone *</label><input type="tel" id="f-phone" placeholder="+1 (604) 000-0000"></div>
           <div class="field"><label>Notes for your barber</label><textarea id="f-notes" placeholder="Special requests…" rows="3"></textarea></div>
         </div>
         <div class="step-actions">
@@ -998,10 +998,10 @@ function renderStep4(){
 async function submitBooking(){
   const name=document.getElementById('f-name').value.trim(),email=document.getElementById('f-email').value.trim();
   const errEl=document.getElementById('book-error');errEl.classList.add('hidden');
-  if(!name||!email){errEl.textContent='Name and email are required.';errEl.classList.remove('hidden');return}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='Please enter a valid email address.';errEl.classList.remove('hidden');return}
   const phoneVal=document.getElementById('f-phone').value.trim();
-  if(phoneVal&&!/^\+?[\d\s()\-]{10,20}$/.test(phoneVal)){
+  if(!name||!email||!phoneVal){errEl.textContent='Name, email, and phone number are required.';errEl.classList.remove('hidden');return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='Please enter a valid email address.';errEl.classList.remove('hidden');return}
+  if(!/^\+?[\d\s()\-]{10,20}$/.test(phoneVal)){
     errEl.textContent='Please enter a valid phone number (example: +1 236 555 1234).';
     errEl.classList.remove('hidden');
     return;
@@ -1017,19 +1017,17 @@ async function submitBooking(){
     }),15000,'Booking request timed out. Please check your connection and try again.');
     if(error){errEl.textContent='Booking failed: '+error.message;errEl.classList.remove('hidden');btn.disabled=false;btn.textContent='Confirm Booking';return}
     BK.info.smsWarning='';
-    if(BK.info.phone){
-      const smsRes=await sendSmsBookingConfirmation({
-        clientName:name,
-        clientPhone:BK.info.phone,
-        serviceName:BK.svc.name,
-        servicePrice:BK.svc.price,
-        date:fmtISO(BK.date),
-        time:BK.time,
-        staffName:BK.staff?.name||null
-      });
-      if(!smsRes.ok){
-        BK.info.smsWarning=smsRes.error||'Could not send SMS confirmation.';
-      }
+    const smsRes=await sendSmsBookingConfirmation({
+      clientName:name,
+      clientPhone:BK.info.phone,
+      serviceName:BK.svc.name,
+      servicePrice:BK.svc.price,
+      date:fmtISO(BK.date),
+      time:BK.time,
+      staffName:BK.staff?.name||null
+    });
+    if(!smsRes.ok){
+      BK.info.smsWarning=smsRes.error||'Could not send SMS confirmation.';
     }
     BK.step=5;renderStep();
   }catch(e){
