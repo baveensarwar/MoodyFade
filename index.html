@@ -547,7 +547,7 @@ footer{background:#000;border-top:3px solid var(--yellow)}
         <div class="success-title">Booking Confirmed!</div>
         <p class="success-sub" id="success-sub">Your appointment is all set.</p>
         <div class="success-details" id="success-details"></div>
-        <p style="font-size:11px;color:var(--txt3);text-align:center;margin-bottom:18px">A confirmation email has been sent with a cancellation link.</p>
+        <p style="font-size:11px;color:var(--txt3);text-align:center;margin-bottom:18px">Save your booking details for reference. To cancel, contact us at +1 (236) 480-4026.</p>
         <button class="btn btn-yellow" onclick="closeModal()" style="width:100%;padding:14px">Done</button>
       </div>
     </div>
@@ -1002,7 +1002,7 @@ async function submitBooking(){
   }
 }
 function renderStep5(){
-  document.getElementById('success-sub').innerHTML=`See you on <span style="color:var(--yellow)">${fmtDate(BK.date)} at ${BK.time}</span>.<br>Confirmation email sent to <strong>${BK.info.email}</strong>.`;
+  document.getElementById('success-sub').innerHTML=`See you on <span style="color:var(--yellow)">${fmtDate(BK.date)} at ${BK.time}</span>.<br>Booked under <strong>${BK.info.email}</strong>.`;
   document.getElementById('success-details').innerHTML=`
     <span class="sk">Service</span><span class="sv">${BK.svc?.name||''}</span>
     <span class="sk">Barber</span><span class="sv">${BK.staff?.name||'Any Available'}</span>
