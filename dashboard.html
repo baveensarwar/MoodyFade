@@ -979,7 +979,7 @@ async function saveStaff(){
   const email=document.getElementById('staff-modal-email').value.trim();
   const role=document.getElementById('staff-modal-role').value;
   const errEl=document.getElementById('staff-modal-err');
-  if(!name||!email){errEl.textContent='Name and email are required.';errEl.classList.remove('hidden');return}
+  if(!name||!email){errEl.textContent='Name and email are required.';errEl.classList.remove('hidden');return}   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='Please enter a valid email address.';errEl.classList.remove('hidden');return}   if(!['barber','admin','developer'].includes(role)){errEl.textContent='Invalid role selected.';errEl.classList.remove('hidden');return}
   const btn=document.getElementById('save-staff-btn');btn.disabled=true;
   try{
     let staffId=editingStaffId;
