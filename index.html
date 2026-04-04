@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moody Fade Barbershop · Vancouver</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0A0A;--surf:#111111;--surf2:#191919;--bdr:#272727;--bdr2:#333333;
+  --yellow:#FFCB05;--yellow2:#FFD633;--yellow3:#C49900;--yellowbg:rgba(255,203,5,.07);
+  --txt:#FFFFFF;--txt2:#B0B0B0;--txt3:#606060;
+  --green:#5CBF7A;--red:#E05555;
+  --ff:'Hanken Grotesk',sans-serif;
+  --nav-h:72px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:var(--ff);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+button{font-family:var(--ff);cursor:pointer;border:none;background:none}
+img{display:block}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--yellow3)}
+::selection{background:var(--yellow);color:#000}
+.hidden{display:none!important}.page{display:none}.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;font-family:var(--ff);font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;padding:14px 34px;white-space:nowrap;transition:all .22s;cursor:pointer;border:none}
+.btn-yellow{background:var(--yellow);color:#000}.btn-yellow:hover{background:var(--yellow2);transform:translateY(-2px);box-shadow:0 8px 28px rgba(255,203,5,.28)}.btn-yellow:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-outline{background:transparent;color:var(--yellow);border:1px solid var(--yellow)}.btn-outline:hover{background:rgba(255,203,5,.07)}
+.btn-outline-white{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45)}.btn-outline-white:hover{border-color:#fff;background:rgba(255,255,255,.07)}
+
+/* ── FIELDS ── */
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:9px;font-weight:700;letter-spacing:3px;color:var(--txt3);text-transform:uppercase}
+.field input,.field textarea{background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);padding:12px 14px;font-family:var(--ff);font-size:14px;outline:none;transition:border-color .2s;resize:none}
+.field input:focus,.field textarea:focus{border-color:var(--yellow)}
+.field input::placeholder,.field textarea::placeholder{color:var(--txt3)}
+
+/* ── NAV ── */
+#nav{position:fixed;top:0;left:0;right:0;z-index:900;height:var(--nav-h);padding:0 5vw;display:flex;align-items:center;justify-content:space-between;transition:all .3s}
+#nav.scrolled{background:rgba(10,10,10,.97);backdrop-filter:blur(18px);border-bottom:1px solid var(--bdr)}
+.nav-logo{cursor:pointer;display:flex;align-items:center}
+.nav-logo svg{height:48px;width:auto}
+.nav-links{display:flex;align-items:center;gap:36px}
+.nav-link{font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--txt2);transition:color .2s;cursor:pointer;padding:5px 0;position:relative}
+.nav-link::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1.5px;background:var(--yellow);transition:width .25s}
+.nav-link:hover,.nav-link.active{color:var(--yellow)}
+.nav-link:hover::after,.nav-link.active::after{width:100%}
+.nav-book{background:var(--yellow);color:#000;font-family:var(--ff);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:10px 22px;cursor:pointer;border:none;transition:all .2s}
+.nav-book:hover{background:var(--yellow2)}
+
+/* ── HERO ── */
+#hero{position:relative;height:100vh;min-height:600px;overflow:hidden;display:flex;align-items:center}
+.hero-bg{position:absolute;inset:0;background:url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1600&q=80') center/cover no-repeat;transform:scale(1.06)}
+.hero-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,rgba(10,10,10,.94) 0%,rgba(10,10,10,.68) 55%,rgba(10,10,10,.35) 100%)}
+.hero-content{position:relative;z-index:1;padding:0 5vw;max-width:1200px;margin:0 auto;width:100%}
+.hero-tag{display:inline-flex;align-items:center;gap:10px;background:var(--yellow);color:#000;padding:6px 14px;font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-bottom:24px;animation:fadeUp .5s .1s ease both}
+.hero-h1{font-size:clamp(54px,8.5vw,100px);line-height:.92;color:#fff;margin-bottom:22px;animation:fadeUp .5s .18s ease both;font-weight:900;letter-spacing:-2px}
+.hero-h1 span{color:var(--yellow)}
+.hero-tagline{font-size:16px;font-weight:300;color:rgba(255,255,255,.58);max-width:440px;margin-bottom:38px;line-height:1.75;animation:fadeUp .5s .28s ease both}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;animation:fadeUp .5s .36s ease both}
+.hero-info-bar{position:absolute;bottom:0;left:0;right:0;z-index:1;display:grid;grid-template-columns:repeat(3,1fr)}
+.hero-info-item{padding:18px 5vw;background:rgba(10,10,10,.82);backdrop-filter:blur(10px);display:flex;align-items:center;gap:14px;border-right:1px solid rgba(255,255,255,.07);border-top:1px solid rgba(255,255,255,.07)}
+.hero-info-item:last-child{border-right:none}
+.hero-info-dot{width:6px;height:6px;background:var(--yellow);flex-shrink:0}
+.hero-info-label{font-size:8px;font-weight:700;letter-spacing:2.5px;color:var(--txt3);text-transform:uppercase;margin-bottom:2px}
+.hero-info-val{font-size:13px;font-weight:400;color:var(--txt2)}
+
+/* ── SECTIONS ── */
+section{padding:90px 5vw}.section-inner{max-width:1200px;margin:0 auto}
+.section-tag{display:inline-flex;align-items:center;gap:8px;font-size:9px;font-weight:700;letter-spacing:3.5px;text-transform:uppercase;color:var(--yellow);margin-bottom:12px}
+.section-tag::before{content:'';display:block;width:24px;height:2px;background:var(--yellow)}
+.section-title{font-size:clamp(32px,4vw,50px);font-weight:900;color:#fff;line-height:1.05;letter-spacing:-1px}
+.section-title em{color:var(--yellow);font-style:normal}
+
+/* ── STATS BAR ── */
+.stats-bar{background:var(--yellow);padding:18px 5vw}
+.stats-bar-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-around;flex-wrap:wrap;gap:16px}
+.stat-num{font-size:28px;font-weight:900;color:#000;letter-spacing:-1px}
+.stat-lbl{font-size:8px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(0,0,0,.5);margin-top:2px}
+
+/* ── PRICE SPLIT ── */
+.services-split{display:grid;grid-template-columns:1fr 1fr}
+.services-photo{overflow:hidden;min-height:500px;position:relative}
+.services-photo img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease;filter:brightness(.85)}
+.services-photo:hover img{transform:scale(1.04)}
+.services-list{background:var(--surf);padding:60px 52px;border-left:3px solid var(--yellow)}
+.price-table{width:100%;border-collapse:collapse;margin-top:24px}
+.price-table tr{border-bottom:1px solid var(--bdr);cursor:pointer;transition:all .15s}
+.price-table tr:last-child{border-bottom:none}
+.price-table tr:hover .pt-name{color:var(--yellow)}
+.price-table tr:hover{background:rgba(255,203,5,.03)}
+.price-table td{padding:12px 0;font-size:13px}
+.price-table .pt-name{color:var(--txt);font-weight:500}
+.price-table .pt-dots{color:var(--bdr2);font-size:11px;padding:0 8px;letter-spacing:3px}
+.price-table .pt-price{color:var(--yellow);font-size:17px;font-weight:800;text-align:right;white-space:nowrap}
+
+/* ── GALLERY ── */
+.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:240px 240px;gap:4px}
+.gallery-item{overflow:hidden;position:relative;cursor:pointer}
+.gallery-item img{width:100%;height:100%;object-fit:cover;transition:transform .5s,filter .5s;filter:brightness(.78) saturate(.8) grayscale(20%)}
+.gallery-item:hover img{transform:scale(1.07);filter:brightness(1) saturate(1.1) grayscale(0%)}
+.gallery-item:first-child{grid-row:1/3}
+.gallery-item-overlay{position:absolute;inset:0;background:rgba(10,10,10,0);transition:background .3s;display:flex;align-items:flex-end;padding:18px}
+.gallery-item:hover .gallery-item-overlay{background:rgba(10,10,10,.5)}
+.gallery-item-tag{font-size:9px;font-weight:700;letter-spacing:2.5px;color:var(--yellow);text-transform:uppercase;opacity:0;transform:translateY(6px);transition:all .3s}
+.gallery-item:hover .gallery-item-tag{opacity:1;transform:translateY(0)}
+
+/* ── TEAM ── */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:3px;max-width:800px;margin:0 auto}
+.team-card{position:relative;overflow:hidden;cursor:pointer;background:var(--surf2)}
+.team-card-photo{height:290px;overflow:hidden}
+.team-card-photo img{width:100%;height:100%;object-fit:cover;transition:transform .5s;filter:grayscale(40%)}
+.team-card:hover .team-card-photo img{transform:scale(1.06);filter:grayscale(0%)}
+.team-card-initials{width:100%;height:290px;display:flex;align-items:center;justify-content:center;background:var(--surf2);font-size:52px;font-weight:900;color:var(--yellow);letter-spacing:-2px}
+.team-card-body{padding:16px 18px;border-top:3px solid var(--yellow)}
+.team-card-name{font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#fff;margin-bottom:2px}
+.team-card-role{font-size:10px;font-weight:500;color:var(--txt3);letter-spacing:1px}
+.team-card-cta{position:absolute;top:14px;right:14px;background:var(--yellow);color:#000;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:6px 10px;opacity:0;transform:translateY(-4px);transition:all .22s}
+.team-card:hover .team-card-cta{opacity:1;transform:translateY(0)}
+
+/* ── CTA BANNER ── */
+.cta-banner{position:relative;height:400px;overflow:hidden}
+.cta-banner img{width:100%;height:100%;object-fit:cover;filter:brightness(.4)}
+.cta-banner-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+.cta-banner-title{font-size:clamp(30px,5vw,56px);font-weight:900;color:#fff;margin-bottom:12px;letter-spacing:-1px}
+.cta-banner-sub{font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--yellow);margin-bottom:28px}
+
+/* ── SERVICES PAGE ── */
+.cat-bar{background:var(--surf);border-bottom:1px solid var(--bdr);position:sticky;top:var(--nav-h);z-index:50;overflow-x:auto;display:flex;padding:0 5vw;scrollbar-width:none}
+.cat-bar::-webkit-scrollbar{display:none}
+.cat-btn{flex-shrink:0;padding:0 20px;height:52px;font-family:var(--ff);font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:var(--txt3);transition:all .2s;border-bottom:2px solid transparent;white-space:nowrap}
+.cat-btn:hover{color:var(--txt2)}.cat-btn.active{color:var(--yellow);border-bottom-color:var(--yellow)}
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.svc-card{background:var(--surf2);border:1px solid var(--bdr);cursor:pointer;transition:border-color .2s,transform .18s;overflow:hidden}
+.svc-card:hover{border-color:var(--yellow);transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.svc-card-icon{height:110px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:var(--surf)}
+.svc-card-icon-bg{font-size:52px;opacity:.1;color:var(--yellow);transition:transform .4s}
+.svc-card:hover .svc-card-icon-bg{transform:scale(1.18)}
+.svc-card-badge{position:absolute;top:10px;left:10px;font-size:7px;font-weight:700;letter-spacing:1.5px;color:var(--yellow);background:rgba(10,10,10,.85);padding:3px 8px;text-transform:uppercase}
+.svc-card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,10,.95) 0%,transparent 55%);opacity:0;transition:opacity .22s;display:flex;align-items:flex-end;padding:12px}
+.svc-card:hover .svc-card-overlay{opacity:1}
+.svc-card-body{padding:14px 16px}
+.svc-card-name{font-size:13px;font-weight:500;color:#fff;line-height:1.4;margin-bottom:8px}
+.svc-card-meta{display:flex;justify-content:space-between;align-items:center}
+.svc-card-dur{font-size:10px;color:var(--txt3)}.svc-card-price{font-size:20px;font-weight:800;color:var(--yellow)}
+
+/* ── INFO CARD ── */
+.info-card{padding:24px;background:var(--surf2);border-left:3px solid var(--yellow)}
+.info-card-title{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--yellow);margin-bottom:10px}
+.info-card-body{font-size:15px;color:var(--txt2);line-height:2;white-space:pre-line}
+
+/* ── ABOUT ── */
+.about-hero{position:relative;height:340px;overflow:hidden}
+.about-hero img{width:100%;height:100%;object-fit:cover;filter:brightness(.35)}
+.about-hero-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-bottom:60px}
+
+/* ── FOOTER ── */
+footer{background:#000;border-top:3px solid var(--yellow)}
+.footer-top-bar{background:var(--yellow);padding:12px 5vw;display:flex;justify-content:space-around;align-items:center;flex-wrap:wrap;gap:10px}
+.footer-top-bar-txt{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#000}
+.footer-body{padding:50px 5vw 26px;max-width:1200px;margin:0 auto}
+.footer-cols{display:flex;justify-content:space-between;flex-wrap:wrap;gap:40px;margin-bottom:40px}
+.footer-brand-name{font-size:20px;font-weight:900;letter-spacing:4px;color:var(--yellow);margin-bottom:4px}
+.footer-brand-sub{font-size:8px;font-weight:700;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:14px}
+.footer-col-title{font-size:8px;font-weight:700;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--bdr)}
+.footer-bottom{border-top:1px solid var(--bdr);padding-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+
+/* ── MODAL ── */
+#modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(10,10,10,.94);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:16px}
+#modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+#modal{width:100%;max-width:540px;max-height:92vh;display:flex;flex-direction:column;background:var(--surf);border:1px solid var(--bdr2);border-top:3px solid var(--yellow);animation:fadeUp .28s ease;overflow:hidden}
+.modal-head{padding:22px 26px 18px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.modal-step-lbl{font-size:8px;font-weight:700;letter-spacing:3px;color:var(--txt3);text-transform:uppercase;margin-bottom:5px}
+.modal-title{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px}
+.modal-close{cursor:pointer;color:var(--txt2);font-size:26px;line-height:1;padding:0 0 0 12px;margin-top:-3px;transition:color .2s}
+.modal-close:hover{color:var(--yellow)}
+.progress-bar{height:2px;background:var(--bdr);margin-top:14px}
+.progress-fill{height:100%;background:var(--yellow);transition:width .4s ease}
+.modal-body{overflow-y:auto;flex:1;padding:22px 26px}
+.modal-body::-webkit-scrollbar{width:3px}
+.book-step{display:none}.book-step.active{display:block}
+.modal-cats{display:flex;gap:5px;overflow-x:auto;padding-bottom:8px;margin-bottom:14px;scrollbar-width:none}
+.modal-cats::-webkit-scrollbar{display:none}
+.modal-cat-btn{flex-shrink:0;padding:5px 12px;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid transparent;background:transparent;color:var(--txt3);transition:all .18s;white-space:nowrap;font-family:var(--ff)}
+.modal-cat-btn:hover{color:var(--txt2)}.modal-cat-btn.active{color:var(--yellow);border-color:var(--yellow3);background:var(--yellowbg)}
+.modal-svc-list{display:flex;flex-direction:column;gap:4px}
+.modal-svc-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surf2);border:1px solid var(--bdr);cursor:pointer;transition:border-color .18s}
+.modal-svc-row:hover{border-color:var(--yellow3);background:rgba(255,203,5,.03)}
+.modal-svc-row-name{font-size:13px;font-weight:500;color:#fff;margin-bottom:2px}
+.modal-svc-row-dur{font-size:10px;color:var(--txt3)}
+.modal-svc-row-price{font-size:20px;font-weight:800;color:var(--yellow);flex-shrink:0;margin-left:14px}
+.staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px}
+.staff-card{padding:16px 10px;background:var(--surf2);border:1px solid var(--bdr);cursor:pointer;transition:all .18s;text-align:center}
+.staff-card:hover{border-color:var(--yellow3)}.staff-card.sel{border-color:var(--yellow);background:var(--yellowbg)}
+.staff-photo{width:56px;height:56px;border-radius:50%;margin:0 auto 10px;object-fit:cover;display:block;border:2px solid var(--yellow3)}
+.staff-initials{width:56px;height:56px;border-radius:50%;background:var(--yellow3);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:18px;font-weight:900;color:#000}
+.staff-card-name{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff}
+.staff-card-any{font-size:10px;color:var(--txt2);margin-top:2px}
+.svc-banner{padding:12px 14px;margin-bottom:20px;background:var(--yellowbg);border-left:3px solid var(--yellow);display:flex;justify-content:space-between;align-items:center}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-nav-btn{background:none;border:1px solid var(--bdr);cursor:pointer;color:var(--yellow);font-size:18px;line-height:1;padding:4px 12px;transition:border-color .2s;font-family:var(--ff)}
+.cal-nav-btn:hover{border-color:var(--yellow)}.cal-nav-btn:disabled{color:var(--txt3);cursor:default}
+.cal-month{font-size:15px;font-weight:700;color:#fff}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-dh{text-align:center;font-size:8px;font-weight:700;letter-spacing:1.5px;color:var(--txt3);padding:3px 0;text-transform:uppercase}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:1px solid transparent;transition:all .15s;color:var(--txt2)}
+.cal-day:hover:not(.cal-past):not(.cal-sun):not(.cal-empty){border-color:var(--yellow3);color:#fff}
+.cal-day.cal-today{color:var(--yellow);border-color:var(--yellow3)}.cal-day.cal-sel{background:var(--yellow);color:#000!important;border-color:var(--yellow);font-weight:800}
+.cal-day.cal-past,.cal-day.cal-sun{opacity:.2;cursor:not-allowed}.cal-day.cal-empty{cursor:default}
+.slots-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.slot-btn{padding:10px;font-family:var(--ff);font-size:10px;font-weight:600;letter-spacing:1px;cursor:pointer;border:1px solid var(--bdr);background:var(--surf2);color:var(--txt2);transition:all .18s}
+.slot-btn:hover:not(:disabled){border-color:var(--yellow3);color:#fff}.slot-btn.sel{border-color:var(--yellow);background:rgba(255,203,5,.1);color:var(--yellow)}
+.slot-btn:disabled{opacity:.2;cursor:not-allowed;text-decoration:line-through}
+.summary-block{padding:14px;background:var(--surf2);border-left:3px solid var(--yellow);font-size:13px;color:var(--txt2);line-height:2.2;margin-bottom:20px}
+.summary-block .lbl{color:var(--txt3)}.summary-block .val{color:#fff;font-weight:500}.summary-block .price{font-size:20px;font-weight:800;color:var(--yellow)}
+.err-box{padding:10px 14px;background:rgba(224,85,85,.07);border-left:3px solid var(--red);color:var(--red);font-size:12px;line-height:1.5}
+.step-actions{display:flex;gap:10px;margin-top:22px}.step-actions .btn{flex:1;padding:13px}
+.success-icon{width:62px;height:62px;border-radius:50%;background:rgba(92,191,122,.1);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:24px;color:var(--green)}
+.success-title{font-size:26px;font-weight:900;color:#fff;text-align:center;margin-bottom:10px;letter-spacing:-0.5px}
+.success-sub{font-size:13px;color:var(--txt2);text-align:center;line-height:1.85;margin-bottom:22px}
+.success-details{padding:14px;background:var(--surf2);border:1px solid var(--bdr);display:grid;grid-template-columns:auto 1fr;gap:8px 22px;font-size:13px;margin-bottom:22px}
+.success-details .sk{color:var(--txt3)}.success-details .sv{color:#fff;font-weight:500}.success-details .sv-price{font-size:18px;font-weight:800;color:var(--yellow)}
+
+@media(max-width:900px){
+  .hero-info-bar{display:none}
+  .services-split{grid-template-columns:1fr}
+  .services-photo{min-height:280px}
+  .services-list{padding:38px 26px}
+  .gallery-grid{grid-template-columns:1fr 1fr;grid-template-rows:auto}
+  .gallery-item:first-child{grid-row:auto}
+  .about-grid{grid-template-columns:1fr}
+  section{padding:60px 5vw}
+  .price-table td{padding:10px 0}
+}
+@media(max-width:640px){
+  .nav-links .nav-link{display:none}
+  #nav{padding:0 18px}
+  .nav-brand-name{font-size:14px;letter-spacing:2px}
+  .nav-brand-sub{font-size:7px}
+  .nav-brand-emblem{width:32px;height:32px;font-size:16px}
+  .hero-actions{flex-direction:column}
+  .hero-actions .btn{width:100%}
+  .stats-bar-inner{gap:12px}
+  .stat-num{font-size:24px}
+  .services-list{padding:28px 20px}
+  .price-table .pt-dots{display:none}
+  .price-table .pt-name{font-size:14px}
+  .price-table .pt-price{font-size:16px}
+  .gallery-grid{grid-template-columns:1fr 1fr;gap:3px}
+  .gallery-item:first-child{grid-column:1/-1;height:200px}
+  .team-grid{grid-template-columns:1fr 1fr;gap:2px}
+  .info-card-body{font-size:14px}
+  .footer-top-bar{flex-direction:column;gap:6px;text-align:center;padding:14px}
+  .footer-cols{flex-direction:column;gap:28px}
+  .footer-bottom{flex-direction:column;gap:8px}
+  .cta-banner{height:300px}
+  .cta-banner-title{font-size:clamp(24px,7vw,40px)}
+  section{padding:50px 5vw}
+}
+@media(max-width:420px){
+  .nav-brand-name{font-size:12px;letter-spacing:1.5px}
+  .nav-book{padding:8px 14px;font-size:9px}
+  .hero-content{padding:0 18px}
+  .stats-bar-inner{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center}
+  .stat-num{font-size:22px}
+  .stat-lbl{font-size:7px}
+  .services-list{padding:22px 16px}
+  .svc-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .svc-card-icon{height:90px}
+  .svc-card-icon-bg{font-size:44px}
+  .svc-card-name{font-size:12px}
+  .svc-card-price{font-size:17px}
+  #modal{max-height:96vh}
+  .modal-head{padding:16px 18px 14px}
+  .modal-body{padding:16px 18px}
+  .slots-grid{grid-template-columns:repeat(3,1fr);gap:5px}
+  .slot-btn{padding:8px 4px;font-size:9px}
+  .team-grid{grid-template-columns:1fr 1fr}
+  .team-card-photo{height:180px}
+  .team-card-name{font-size:11px}
+  .info-card{padding:18px}
+  .info-card-body{font-size:13px}
+  .gallery-grid{grid-template-columns:1fr 1fr}
+  .gallery-item:first-child{grid-column:auto;height:180px}
+  .gallery-item{height:150px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo" onclick="showPage('home')"><img src="./images/logo.svg" style="height:48px;width:auto;display:block" alt="Moody Fade Barbershop"></div>
+  <div class="nav-links">
+    <span class="nav-link active" id="nav-home" onclick="showPage('home')">Home</span>
+    <span class="nav-link" id="nav-services" onclick="showPage('services')">Services</span>
+    <span class="nav-link" id="nav-about" onclick="showPage('about')">About</span>
+    <button class="nav-book" onclick="openModal(null)">Book Now</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ══ HOME ══ -->
+<div id="page-home" class="page active">
+
+  <section id="hero" style="padding:0">
+    <div class="hero-bg" id="hero-bg"></div>
+    <div class="hero-content">
+      <div class="hero-tag">East Vancouver, BC</div>
+      <h1 class="hero-h1">Sharp<br>Cuts.<br><span>Cleaner</span><br>Fades.</h1>
+      <p class="hero-tagline">Premium barbering and grooming at 2255 E Hastings Street. Walk in looking good, walk out looking great.</p>
+      <div class="hero-actions">
+        <button class="btn btn-yellow" onclick="openModal(null)" style="padding:16px 40px">Book Appointment</button>
+        <button class="btn btn-outline-white" onclick="showPage('services')" style="padding:16px 32px">View Services</button>
+      </div>
+    </div>
+    <div class="hero-info-bar">
+      <div class="hero-info-item"><div class="hero-info-dot"></div><div><div class="hero-info-label">Address</div><div class="hero-info-val">2255 E Hastings St, Vancouver</div></div></div>
+      <div class="hero-info-item"><div class="hero-info-dot"></div><div><div class="hero-info-label">Phone</div><div class="hero-info-val">+1 (236) 480-4026</div></div></div>
+      <div class="hero-info-item"><div class="hero-info-dot"></div><div><div class="hero-info-label">Hours</div><div class="hero-info-val">Mon–Sat · 9 AM – 6 PM</div></div></div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stats-bar-inner">
+      <div style="text-align:center"><div class="stat-num">26+</div><div class="stat-lbl">Services</div></div>
+      <div style="text-align:center"><div class="stat-num">3</div><div class="stat-lbl">Expert Barbers</div></div>
+      <div style="text-align:center"><div class="stat-num">$20</div><div class="stat-lbl">Starting From</div></div>
+      <div style="text-align:center"><div class="stat-num">5★</div><div class="stat-lbl">Google Rating</div></div>
+    </div>
+  </div>
+
+  <!-- PRICE SPLIT -->
+  <div class="services-split">
+    <div class="services-photo"><img src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&q=80" alt="Barber"></div>
+    <div class="services-list">
+      <div class="section-tag">Our Menu</div>
+      <h2 class="section-title" style="margin-bottom:4px">Best Price <em>For You</em></h2>
+      <p style="font-size:12px;color:var(--txt3);font-weight:500;margin-bottom:2px;letter-spacing:0.5px">All prices in CAD · Click to book</p>
+      <table class="price-table">
+        <tr onclick="openModal(1)"><td class="pt-name">Adult Haircut</td><td class="pt-dots">· · · · ·</td><td class="pt-price">$27</td></tr>
+        <tr onclick="openModal(3)"><td class="pt-name">Skin Fade</td><td class="pt-dots">· · · · ·</td><td class="pt-price">$30</td></tr>
+        <tr onclick="openModal(7)"><td class="pt-name">Buzz Cut</td><td class="pt-dots">· · · · ·</td><td class="pt-price">$20</td></tr>
+        <tr onclick="openModal(13)"><td class="pt-name">Beard Trim & Lineup</td><td class="pt-dots">· · · · ·</td><td class="pt-price">$20</td></tr>
+        <tr onclick="openModal(11)"><td class="pt-name">Haircut & Beard Trim</td><td class="pt-dots">· · · · ·</td><td class="pt-price">$40</td></tr>
+        <tr onclick="openModal(9)"><td class="pt-name">Haircut + Beard + Facial</td><td class="pt-dots">· · · · ·</td><td class="pt-price">$80</td></tr>
+        <tr onclick="openModal(21)"><td class="pt-name">Skin Steam Facial</td><td class="pt-dots">· · · · ·</td><td class="pt-price">$50</td></tr>
+      </table>
+      <button class="btn btn-outline" onclick="showPage('services')" style="margin-top:28px;padding:12px 28px">Full Price List →</button>
+    </div>
+  </div>
+
+  <!-- GALLERY -->
+  <section style="background:var(--surf)">
+    <div class="section-inner">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px;flex-wrap:wrap;gap:12px">
+        <div><div class="section-tag">Our Work</div><h2 class="section-title">The <em>Gallery</em></h2></div>
+        <a href="https://www.instagram.com/moodyfadebarbershop/" target="_blank" style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--yellow);text-transform:uppercase">@moodyfadebarbershop ↗</a>
+      </div>
+      <div class="gallery-grid">
+        <div class="gallery-item"><img src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80" alt="Cut"><div class="gallery-item-overlay"><span class="gallery-item-tag">Precision Cut</span></div></div>
+        <div class="gallery-item"><img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=600&q=80" alt="Fade"><div class="gallery-item-overlay"><span class="gallery-item-tag">Skin Fade</span></div></div>
+        <div class="gallery-item"><img src="https://images.unsplash.com/photo-1634302086684-e6f8ea4d8b18?w=600&q=80" alt="Beard"><div class="gallery-item-overlay"><span class="gallery-item-tag">Beard Trim</span></div></div>
+        <div class="gallery-item"><img src="https://images.unsplash.com/photo-1540512946651-80fb97e25d30?w=600&q=80" alt="Style"><div class="gallery-item-overlay"><span class="gallery-item-tag">Classic Style</span></div></div>
+        <div class="gallery-item"><img src="https://images.unsplash.com/photo-1599351431613-18ef1fdd27e6?w=600&q=80" alt="Shop"><div class="gallery-item-overlay"><span class="gallery-item-tag">The Shop</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEAM -->
+  <section>
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:48px">
+        <div class="section-tag" style="justify-content:center">The Team</div>
+        <h2 class="section-title">Meet Your <em>Barbers</em></h2>
+      </div>
+      <div id="team-grid" class="team-grid"></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-banner">
+    <img src="https://images.unsplash.com/photo-1582095133179-bfd08e2fb6b8?w=1600&q=80" alt="Shop">
+    <div class="cta-banner-content">
+      <div class="cta-banner-sub">Ready for a Fresh Look?</div>
+      <div class="cta-banner-title">Book Your Appointment Today</div>
+      <button class="btn btn-yellow" onclick="openModal(null)" style="padding:16px 46px">Reserve Your Seat</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ SERVICES ══ -->
+<div id="page-services" class="page">
+  <div style="position:relative;height:200px;overflow:hidden;display:flex;align-items:center">
+    <img src="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=1400&q=80" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.28)">
+    <div style="position:relative;z-index:1;padding:0 5vw;max-width:1200px;margin:0 auto;width:100%">
+      <div class="section-tag">Menu</div>
+      <h1 class="section-title">Our <em>Services</em></h1>
+      <p style="font-size:13px;color:var(--txt2);margin-top:8px;font-weight:400">All prices in CAD · Click any service to book instantly</p>
+    </div>
+  </div>
+  <div class="cat-bar" id="cat-bar"></div>
+  <section><div class="section-inner"><div class="svc-grid" id="services-grid"></div></div></section>
+</div>
+
+<!-- ══ ABOUT ══ -->
+<div id="page-about" class="page">
+  <div class="about-hero">
+    <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1400&q=80" alt="">
+    <div class="about-hero-text">
+      <div class="section-tag" style="justify-content:center;margin-bottom:10px">Our Story</div>
+      <h1 class="section-title" style="font-size:clamp(36px,5vw,58px)">Grooming with <em>Excellence</em></h1>
+      <div style="width:40px;height:3px;background:var(--yellow);margin:16px auto 0"></div>
+    </div>
+  </div>
+  <section>
+    <div class="section-inner">
+      <div class="about-grid">
+        <div>
+          <h2 style="font-size:28px;font-weight:800;color:#fff;margin-bottom:16px;letter-spacing:-0.5px">The Moody Fade Legacy</h2>
+          <p style="font-size:14px;line-height:2;color:var(--txt2);margin-bottom:16px">Located in the heart of East Vancouver at 2255 E Hastings Street, Moody Fade Barbershop has built a reputation for precision cuts, expert fades, and a welcoming atmosphere that keeps clients coming back.</p>
+          <p style="font-size:14px;line-height:2;color:var(--txt2)">Our skilled team brings years of experience to every service. We believe looking sharp isn't a luxury — it's a standard every man deserves.</p>
+        </div>
+        <div>
+          <h2 style="font-size:28px;font-weight:800;color:#fff;margin-bottom:16px;letter-spacing:-0.5px">Our Philosophy</h2>
+          <p style="font-size:14px;line-height:2;color:var(--txt2);margin-bottom:16px">We combine traditional barbering techniques with modern precision. Every cut is tailored to the individual — your face shape, your style, your personality.</p>
+          <p style="font-size:14px;line-height:2;color:var(--txt2)">From a quick buzz cut to a full deluxe package, we approach every service with the same care and attention to detail.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-bottom:60px">
+        <div class="info-card"><div class="info-card-title">Location</div><div class="info-card-body">2255 E Hastings St\nVancouver, BC V5L 1V3</div></div>
+        <div class="info-card"><div class="info-card-title">Contact</div><div class="info-card-body">+1 (236) 480-4026\n@moodyfadebarbershop</div></div>
+        <div class="info-card"><div class="info-card-title">Hours</div><div class="info-card-body">Monday – Saturday\n9:00 AM – 6:00 PM\nSunday: Closed</div></div>
+      </div>
+      <div style="text-align:center"><button class="btn btn-yellow" onclick="openModal(null)" style="padding:16px 48px">Book Your Visit</button></div>
+    </div>
+  </section>
+</div>
+
+</main>
+
+<footer>
+  <div class="footer-top-bar">
+    <span class="footer-top-bar-txt">📍 2255 E Hastings St, Vancouver</span>
+    <span class="footer-top-bar-txt">📞 +1 (236) 480-4026</span>
+    <span class="footer-top-bar-txt">⏰ Mon–Sat · 9AM–6PM</span>
+  </div>
+  <div class="footer-body">
+    <div class="footer-cols">
+      <div>
+        <div class="footer-brand-name">MOODY FADE</div>
+        <div class="footer-brand-sub">Barbershop · Vancouver, BC</div>
+        <p style="font-size:13px;color:var(--txt2);max-width:220px;line-height:1.9">"Tradition meets precision.<br>Every visit, every time."</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Navigate</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button onclick="showPage('home')" style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);cursor:pointer;background:none;border:none;text-align:left;font-family:var(--ff)">Home</button>
+          <button onclick="showPage('services')" style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);cursor:pointer;background:none;border:none;text-align:left;font-family:var(--ff)">Services</button>
+          <button onclick="showPage('about')" style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);cursor:pointer;background:none;border:none;text-align:left;font-family:var(--ff)">About</button>
+          <button onclick="openModal(null)" style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--yellow);cursor:pointer;background:none;border:none;text-align:left;font-family:var(--ff)">Book Online</button>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Follow Us</div>
+        <a href="https://www.instagram.com/moodyfadebarbershop/" target="_blank" style="font-size:13px;color:var(--txt2);display:flex;align-items:center;gap:8px;font-weight:400">📸 @moodyfadebarbershop</a>
+        <div style="font-size:12px;color:var(--txt3);margin-top:16px;line-height:2">Book online 24/7<br>No waiting, no hassle</div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span style="font-size:11px;color:var(--txt3)">© 2025 Moody Fade Barbershop. All rights reserved.</span>
+      <a href="dashboard.html" style="font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt3)">Staff Login</a>
+    </div>
+  </div>
+</footer>
+
+<!-- BOOKING MODAL -->
+<div id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div id="modal">
+    <div class="modal-head">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div class="modal-step-lbl" id="modal-step-lbl">Step 1 of 4</div><div class="modal-title" id="modal-title">Choose Service</div></div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="modal-body">
+      <div class="book-step active" id="step-1">
+        <div class="field" style="margin-bottom:12px"><input type="text" id="svc-search" placeholder="Search services…" oninput="renderModalSvcs()"></div>
+        <div class="modal-cats" id="modal-cats"></div>
+        <div class="modal-svc-list" id="modal-svc-list"></div>
+      </div>
+      <div class="book-step" id="step-2">
+        <p style="font-size:13px;color:var(--txt2);margin-bottom:18px">Choose your barber or let us assign one for you.</p>
+        <div class="staff-grid" id="staff-grid"></div>
+        <div class="step-actions" style="margin-top:22px">
+          <button class="btn btn-outline" onclick="goStep(1)">Back</button>
+          <button class="btn btn-yellow" id="step2-next" onclick="goStep(3)" disabled>Continue</button>
+        </div>
+      </div>
+      <div class="book-step" id="step-3">
+        <div class="svc-banner" id="svc-banner"></div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:2.5px;color:var(--txt3);text-transform:uppercase;margin-bottom:12px">Select Date</div>
+        <div class="cal-nav">
+          <button class="cal-nav-btn" id="cal-prev" onclick="calPrev()">‹</button>
+          <span class="cal-month" id="cal-month-lbl"></span>
+          <button class="cal-nav-btn" onclick="calNext()">›</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div style="font-size:10px;color:var(--txt3);text-align:center;margin-top:8px">Closed Sundays · Book up to 60 days ahead</div>
+        <div id="time-section" class="hidden">
+          <div style="font-size:9px;font-weight:700;letter-spacing:2.5px;color:var(--txt3);text-transform:uppercase;margin:18px 0 10px" id="time-lbl">Available Times</div>
+          <div id="slots-loading" class="hidden" style="font-size:12px;color:var(--txt3);animation:pulse 1.4s infinite;margin-bottom:10px">Loading availability…</div>
+          <div class="slots-grid" id="slots-grid"></div>
+        </div>
+        <div class="step-actions">
+          <button class="btn btn-outline" onclick="goStep(2)">Back</button>
+          <button class="btn btn-yellow" id="step3-next" onclick="goStep(4)" disabled>Continue</button>
+        </div>
+      </div>
+      <div class="book-step" id="step-4">
+        <div class="summary-block" id="summary-block"></div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="field"><label>Full Name *</label><input type="text" id="f-name" placeholder="John Smith"></div>
+          <div class="field"><label>Email *</label><input type="email" id="f-email" placeholder="john@example.com"></div>
+          <div class="field"><label>Phone</label><input type="tel" id="f-phone" placeholder="+1 (604) 000-0000"></div>
+          <div class="field"><label>Notes for your barber</label><textarea id="f-notes" placeholder="Special requests…" rows="3"></textarea></div>
+        </div>
+        <div class="step-actions">
+          <button class="btn btn-outline" onclick="goStep(3)">Back</button>
+          <button class="btn btn-yellow" id="step4-confirm-btn" onclick="submitBooking()">Confirm Booking</button>
+        </div>
+        <div id="book-error" class="err-box hidden" style="margin-top:12px"></div>
+      </div>
+      <div class="book-step" id="step-5">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Booking Confirmed!</div>
+        <p class="success-sub" id="success-sub">Your appointment is all set.</p>
+        <div class="success-details" id="success-details"></div>
+        <p style="font-size:11px;color:var(--txt3);text-align:center;margin-bottom:18px">Save your booking details for reference. To cancel, contact us at +1 (236) 480-4026.</p>
+        <button class="btn btn-yellow" onclick="closeModal()" style="width:100%;padding:14px">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const {createClient}=supabase;
+const SUPABASE_URL='https://bljvdmzngedsgzpmckyy.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsanZkbXpuZ2Vkc2d6cG1ja3l5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMTY4MDYsImV4cCI6MjA5MDU5MjgwNn0.pZ9zkBGKRRzQIBajqXbfP4O5aO2gPVaN6ws-jloQgr0';
+const SB=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let SVCS=[];
+let CATS=['All Services'];
+async function loadServices(){
+  const{data}=await SB.from('services').select('*').eq('active',true).order('sort_order');
+  SVCS=(data||[]).map(s=>({id:s.id,name:s.name,cat:s.category,dur:s.duration_minutes,price:s.price}));
+  const catSet=new Set(SVCS.map(s=>s.cat));
+  CATS=['All Services',...catSet];
+}
+const CAT_ICONS={'Regular Haircuts':'✂','Deluxe Packages':'◈','Beard & Line-ups':'◎','Detailing & Add-Ons':'◇','Colours':'◉'};
+const TIMES=['6:00 AM','6:30 AM','7:00 AM','7:30 AM','8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM'];
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const fmtDur=m=>m<60?m+' min':(Math.floor(m/60)+(m%60?'h '+(m%60)+'min':' hr'));
+const fmtDate=d=>d?d.toLocaleDateString('en-CA',{weekday:'long',month:'long',day:'numeric'}):'';
+const fmtDateShort=d=>d?d.toLocaleDateString('en-CA',{month:'short',day:'numeric'}):'';
+const fmtISO=d=>{if(!d)return'';const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return`${y}-${m}-${dd}`};;
+function initials(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
+function to12h(t){if(!t)return t;if(t.includes('AM')||t.includes('PM'))return t;const[h,m]=t.split(':').map(Number);const p=h>=12?'PM':'AM';const h12=h===0?12:h>12?h-12:h;return`${h12}:${String(m).padStart(2,'0')} ${p}`}
+
+async function withTimeout(promise,ms,msg){
+  let tid;
+  const timeout=new Promise((_,rej)=>{tid=setTimeout(()=>rej(new Error(msg)),ms)});
+  return Promise.race([promise,timeout]).finally(()=>clearTimeout(tid));
+}
+
+async function sendSmsBookingConfirmation(payload){
+  if(!payload||!payload.clientPhone)return{ok:false,error:'Missing phone payload'};
+  try{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/send-booking-sms`,{
+      method:'POST',
+      headers:{
+        'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey':SUPABASE_ANON_KEY,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify(payload)
+    });
+    const raw=await res.text();
+    let parsed=null;
+    try{parsed=raw?JSON.parse(raw):null}catch(_){parsed=null}
+    if(!res.ok){
+      const errMsg=parsed?.hint||parsed?.message||parsed?.error||raw||`HTTP ${res.status}`;
+      console.warn('SMS confirmation failed:',res.status,parsed||raw);
+      return{ok:false,error:String(errMsg)};
+    }
+    return{ok:true,data:parsed};
+  }catch(e){
+    console.warn('SMS confirmation error:',e);
+    return{ok:false,error:String(e)};
+  }
+}
+
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').classList.toggle('scrolled',window.scrollY>40);
+  const bg=document.getElementById('hero-bg');
+  if(bg&&window.scrollY<window.innerHeight)bg.style.transform=`scale(1.06) translateY(${window.scrollY*0.25}px)`;
+});
+let STAFF_LIST=[],staffLoaded=false,STAFF_SERVICES={};
+async function loadStaff(){
+  const[{data:sd},{data:svd}]=await Promise.all([
+    SB.from('staff').select('id,name,photo_url,role').order('name'),
+    SB.from('staff_services').select('staff_id,service_name')
+  ]);
+  STAFF_LIST=sd||[];staffLoaded=true;
+  // Build map: {staffId: Set<serviceName>}
+  STAFF_SERVICES={};
+  (svd||[]).forEach(r=>{
+    if(!STAFF_SERVICES[r.staff_id])STAFF_SERVICES[r.staff_id]=new Set();
+    STAFF_SERVICES[r.staff_id].add(r.service_name);
+  });
+  renderTeamGrid();
+}
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+  const nl=document.getElementById('nav-'+id);if(nl)nl.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='services')renderServicesPage();
+}
+function buildSvcCard(s,onclick){
+  const icon=CAT_ICONS[s.cat]||'✂';
+  return`<div class="svc-card" onclick="${onclick}">
+    <div class="svc-card-icon"><div class="svc-card-icon-bg">${icon}</div><div class="svc-card-badge">${s.cat}</div>
+    <div class="svc-card-overlay"><button class="btn btn-yellow" style="width:100%;padding:10px;font-size:9px">Book Now</button></div></div>
+    <div class="svc-card-body"><div class="svc-card-name">${s.name}</div>
+    <div class="svc-card-meta"><span class="svc-card-dur">${fmtDur(s.dur)}</span><span class="svc-card-price">$${s.price}</span></div></div></div>`;
+}
+function renderTeamGrid(){
+  const barbers=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin');
+  document.getElementById('team-grid').innerHTML=barbers.map(s=>`
+    <div class="team-card" onclick="openModal(null,null,'${s.id}')">
+      <div class="team-card-photo">${s.photo_url?`<img src="${s.photo_url}" alt="${s.name}">`:`<div class="team-card-initials">${initials(s.name)}</div>`}</div>
+      <div class="team-card-body"><div class="team-card-name">${s.name}</div><div class="team-card-role">Barber · Moody Fade</div></div>
+      <div class="team-card-cta">Book →</div>
+    </div>`).join('');
+}
+// Check if a barber offers a given service
+function barberOffersService(staffId,serviceName){
+  const set=STAFF_SERVICES[staffId];
+  if(!set||set.size===0)return true; // no assignments = offers all (backward compat)
+  return set.has(serviceName);
+}
+let activeCat='All Services';
+function renderServicesPage(){
+  document.getElementById('cat-bar').innerHTML=CATS.map(c=>`<button class="cat-btn${c===activeCat?' active':''}" onclick="filterCat(this,'${c.replace(/'/g,"\\'")}'')">${c}</button>`).join('');
+  renderServicesGrid();
+}
+function filterCat(el,c){activeCat=c;document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderServicesGrid()}
+function renderServicesGrid(){
+  const f=SVCS.filter(s=>activeCat==='All Services'||s.cat===activeCat);
+  document.getElementById('services-grid').innerHTML=f.map(s=>buildSvcCard(s,`openModal(${s.id})`)).join('');
+}
+let BK={step:1,svc:null,staff:null,date:null,time:null,calY:0,calMo:0,info:{},processing:false};
+const today=new Date();
+function resetBK(svcId,staffId){
+  const d=new Date();
+  BK={step:svcId?2:1,svc:svcId?SVCS.find(s=>s.id===svcId)||null:null,
+    staff:staffId?STAFF_LIST.find(s=>s.id===staffId)||null:null,
+    date:null,time:null,calY:d.getFullYear(),calMo:d.getMonth(),info:{},processing:false};
+}
+async function openModal(svcId=null,e,staffId=null){
+  if(e)e.stopPropagation();
+  if(!staffLoaded){
+    document.getElementById('modal-overlay').classList.add('open');
+    document.body.style.overflow='hidden';
+    document.getElementById('modal-step-lbl').textContent='Loading…';
+    document.getElementById('modal-title').textContent='One moment…';
+    document.getElementById('progress-fill').style.width='0%';
+    document.querySelectorAll('.book-step').forEach(s=>s.classList.remove('active'));
+    document.getElementById('step-1').classList.add('active');
+    document.getElementById('modal-svc-list').innerHTML='<div style="color:var(--txt3);font-size:12px;animation:pulse 1.4s infinite;padding:20px 0">Loading…</div>';
+    await loadStaff();
+  }
+  resetBK(svcId,staffId);
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  renderStep();
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');document.body.style.overflow=''}
+function handleOverlayClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal()}
+const STEP_TITLES=['','Choose Service','Choose Barber','Date & Time','Your Details','Booking Confirmed'];
+function renderStep(){
+  document.querySelectorAll('.book-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step-'+BK.step).classList.add('active');
+  document.getElementById('modal-step-lbl').textContent=BK.step<5?`Step ${BK.step} of 4`:'Complete';
+  document.getElementById('modal-title').textContent=STEP_TITLES[BK.step];
+  document.getElementById('progress-fill').style.width=(BK.step===5?100:((BK.step-1)/3*100))+'%';
+  if(BK.step===1)renderStep1();if(BK.step===2)renderStep2();if(BK.step===3)renderStep3();
+  if(BK.step===4)renderStep4();if(BK.step===5)renderStep5();
+}
+function goStep(n){BK.step=n;renderStep()}
+let modalCat='All Services';
+function renderStep1(){
+  document.getElementById('modal-cats').innerHTML=CATS.map(c=>`<button class="modal-cat-btn${c===modalCat?' active':''}" onclick="setModalCat(this,'${c.replace(/'/g,"\\'")}')">${c==='All Services'?'All':c}</button>`).join('');
+  renderModalSvcs();
+}
+function setModalCat(el,c){modalCat=c;document.querySelectorAll('.modal-cat-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderModalSvcs()}
+function renderModalSvcs(){
+  const q=(document.getElementById('svc-search')||{}).value||'';
+  const f=SVCS.filter(s=>(modalCat==='All Services'||s.cat===modalCat)&&(!q||s.name.toLowerCase().includes(q.toLowerCase())));
+  document.getElementById('modal-svc-list').innerHTML=f.map(s=>`
+    <div class="modal-svc-row" onclick="selectSvc(${s.id})">
+      <div><div class="modal-svc-row-name">${s.name}</div><div class="modal-svc-row-dur">${fmtDur(s.dur)}</div></div>
+      <div class="modal-svc-row-price">$${s.price}</div>
+    </div>`).join('');
+}
+function selectSvc(id){BK.svc=SVCS.find(s=>s.id===id);BK.step=2;renderStep()}
+function renderStep2(){
+  // Only show barbers who offer the selected service
+  const barbers=STAFF_LIST.filter(s=>(s.role==='barber'||s.role==='admin')&&barberOffersService(s.id,BK.svc?.name));
+  let html=`<div class="staff-card${BK.staff===null?' sel':''}" onclick="selectStaff(null)">
+    <div class="staff-initials" style="background:#222;font-size:13px;color:var(--txt2);font-weight:700">ANY</div>
+    <div class="staff-card-name">Any Available</div><div class="staff-card-any">First available barber</div></div>`;
+  if(!barbers.length){
+    html+='<div style="grid-column:1/-1;font-size:12px;color:var(--txt3);padding:12px 0">No barbers available for this service yet.</div>';
+  }else{
+    html+=barbers.map(s=>{
+      const sel=BK.staff?.id===s.id;
+      const photo=s.photo_url?`<img src="${s.photo_url}" class="staff-photo">`:`<div class="staff-initials">${initials(s.name)}</div>`;
+      return`<div class="staff-card${sel?' sel':''}" onclick="selectStaff('${s.id}')">${photo}<div class="staff-card-name">${s.name}</div></div>`;
+    }).join('');
+  }
+  document.getElementById('staff-grid').innerHTML=html;
+  document.getElementById('step2-next').disabled=false;
+}
+function selectStaff(id){
+  BK.staff=id?STAFF_LIST.find(s=>s.id===id):null;
+  document.querySelectorAll('.staff-card').forEach(c=>c.classList.remove('sel'));
+  event.currentTarget.classList.add('sel');
+  document.getElementById('step2-next').disabled=false;
+}
+async function renderStep3(){
+  const s=BK.svc;
+  // Use barber's custom duration if set, otherwise service default
+  const effDur=BK.staff?(BARBER_DURATIONS[s?.name]||s?.dur||30):(s?.dur||30);
+  document.getElementById('svc-banner').innerHTML=s?`
+    <div><div style="font-size:13px;color:var(--yellow);font-weight:600;margin-bottom:2px">${s.name}</div>
+    <div style="font-size:11px;color:var(--txt2)">${fmtDur(effDur)}${BK.staff?' · with '+BK.staff.name:''}</div></div>
+    <div style="font-size:22px;font-weight:800;color:var(--yellow)">$${s.price}</div>`:'';
+  await fetchBlockedDays();renderCal();if(BK.date)renderSlots();
+}
+let BLOCKED_DAYS=new Set();
+let STAFF_HOURS={};
+let BARBER_DURATIONS={}; // {serviceName: durationMinutes} — per-barber overrides
+
+// Convert "2:30 PM" → minutes from midnight
+function timeToMins(t){
+  const[time,period]=t.split(' ');
+  let[h,m]=time.split(':').map(Number);
+  if(period==='PM'&&h!==12)h+=12;
+  if(period==='AM'&&h===12)h=0;
+  return h*60+m;
+}
+
+// Check if a slot is truly available considering service duration overlaps
+function isSlotAvailable(slotTime,newDur,existingBookings){
+  const slotStart=timeToMins(slotTime);
+  const slotEnd=slotStart+newDur;
+  for(const b of existingBookings){
+    const bStart=timeToMins(b.time);
+    const bEnd=bStart+(b.service_dur||30);
+    // Overlap if new booking starts before existing ends AND new booking ends after existing starts
+    if(slotStart<bEnd&&slotEnd>bStart)return false;
+  }
+  return true;
+}
+
+async function fetchBlockedDays(){
+  BLOCKED_DAYS=new Set();STAFF_HOURS={};BARBER_DURATIONS={};
+  if(BK.staff){
+    const[bd,wh,dd]=await Promise.all([
+      SB.from('blocked_slots').select('date').eq('staff_id',BK.staff.id).eq('full_day',true),
+      SB.from('staff_hours').select('*').eq('staff_id',BK.staff.id),
+      SB.from('staff_service_durations').select('*').eq('staff_id',BK.staff.id)
+    ]);
+    (bd.data||[]).forEach(b=>BLOCKED_DAYS.add(b.date));
+    (wh.data||[]).forEach(h=>{STAFF_HOURS[h.day_of_week]={is_working:h.is_working,start_time:h.start_time,end_time:h.end_time}});
+    (dd.data||[]).forEach(d=>{BARBER_DURATIONS[d.service_name]=d.duration_minutes});
+  }else{
+    const barbers=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin');
+    const barberIds=barbers.map(s=>s.id);
+    if(!barberIds.length)return;
+    const[bd,wh]=await Promise.all([
+      SB.from('blocked_slots').select('staff_id,date').eq('full_day',true).in('staff_id',barberIds),
+      SB.from('staff_hours').select('*').in('staff_id',barberIds)
+    ]);
+    window.ALL_STAFF_BLOCKED={};
+    (bd.data||[]).forEach(b=>{
+      if(!window.ALL_STAFF_BLOCKED[b.staff_id])window.ALL_STAFF_BLOCKED[b.staff_id]=new Set();
+      window.ALL_STAFF_BLOCKED[b.staff_id].add(b.date);
+    });
+    window.ALL_STAFF_HOURS={};
+    (wh.data||[]).forEach(h=>{
+      if(!window.ALL_STAFF_HOURS[h.staff_id])window.ALL_STAFF_HOURS[h.staff_id]={};
+      window.ALL_STAFF_HOURS[h.staff_id][h.day_of_week]={is_working:h.is_working,start_time:h.start_time,end_time:h.end_time};
+    });
+  }
+}
+
+function isBarberWorkingOn(dt){
+  if(BK.staff){
+    const dow=dt.getDay();
+    const h=STAFF_HOURS[dow];
+    if(!h)return true;
+    return h.is_working;
+  }
+  const iso=fmtISO(dt);
+  const barbers=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin');
+  return barbers.some(s=>{
+    const blocked=window.ALL_STAFF_BLOCKED?.[s.id]?.has(iso);
+    if(blocked)return false;
+    const hours=window.ALL_STAFF_HOURS?.[s.id]?.[dt.getDay()];
+    if(!hours)return true;
+    return hours.is_working;
+  });
+}
+
+function getWorkingTimesFor(dt){
+  const dow=dt.getDay();
+  if(BK.staff){
+    const h=STAFF_HOURS[dow];
+    if(!h||!h.is_working)return[];
+    const si=timeToMins(h.start_time),ei=timeToMins(h.end_time);
+    return TIMES.filter(t=>{const m=timeToMins(t);return m>=si&&m<ei});
+  }
+  const iso=fmtISO(dt);
+  const barbers=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin');
+  const allMins=new Set();
+  barbers.forEach(s=>{
+    const blocked=window.ALL_STAFF_BLOCKED?.[s.id]?.has(iso);
+    if(blocked)return;
+    const hours=window.ALL_STAFF_HOURS?.[s.id]?.[dow];
+    if(hours&&!hours.is_working)return;
+    const si=hours?.is_working?timeToMins(hours.start_time):timeToMins('9:00 AM');
+    const ei=hours?.is_working?timeToMins(hours.end_time):timeToMins('6:00 PM');
+    TIMES.forEach(t=>{const m=timeToMins(t);if(m>=si&&m<ei)allMins.add(t)});
+  });
+  return TIMES.filter(t=>allMins.has(t));
+}
+
+function renderCal(){
+  const{calY:y,calMo:mo}=BK;
+  const dim=new Date(y,mo+1,0).getDate(),fd=new Date(y,mo,1).getDay();
+  const todD=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  document.getElementById('cal-month-lbl').textContent=MONTHS[mo]+' '+y;
+  document.getElementById('cal-prev').disabled=!(y>today.getFullYear()||(y===today.getFullYear()&&mo>today.getMonth()));
+  const dow=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let h=dow.map(d=>`<div class="cal-dh">${d}</div>`).join('');
+  h+=Array.from({length:fd},()=>'<div class="cal-day cal-empty"></div>').join('');
+  for(let d=1;d<=dim;d++){
+    const dt=new Date(y,mo,d),past=dt<todD;
+    const iso=fmtISO(dt),blocked=BLOCKED_DAYS.has(iso);
+    const notWorking=!isBarberWorkingOn(dt);
+    const tod=dt.toDateString()===today.toDateString(),sel=BK.date&&BK.date.toDateString()===dt.toDateString();
+    const disabled=past||blocked||notWorking;
+    let cls='cal-day'+(past?' cal-past':'')+(blocked||notWorking?' cal-past':'')+(sel?' cal-sel':(!sel&&tod?' cal-today':''));
+    const title=notWorking?'Day off':blocked?'Not available':'';
+    h+=`<div class="${cls}" title="${title}" ${!disabled?`onclick="selectDate(${y},${mo},${d})"`:''}>${d}</div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=h;
+}
+function calPrev(){if(BK.calMo===0){BK.calMo=11;BK.calY--}else BK.calMo--;renderCal()}
+function calNext(){if(BK.calMo===11){BK.calMo=0;BK.calY++}else BK.calMo++;renderCal()}
+async function selectDate(y,mo,d){
+  BK.date=new Date(y,mo,d);BK.time=null;renderCal();
+  document.getElementById('time-section').classList.remove('hidden');
+  document.getElementById('time-lbl').textContent=`Available Times — ${fmtDateShort(BK.date)}`;
+  document.getElementById('step3-next').disabled=true;await renderSlots();
+}
+async function renderSlots(){
+  const sl=document.getElementById('slots-loading'),sg=document.getElementById('slots-grid');
+  sl.classList.remove('hidden');sg.innerHTML='';
+
+  // Duration for the service being booked (barber override → SVCS default)
+  const svcDur=BK.staff?(BARBER_DURATIONS[BK.svc?.name]||BK.svc?.dur||30):(BK.svc?.dur||30);
+
+  let existingBookings=[],dayBlocked=false;
+  try{
+    let bkQuery=SB.from('bookings')
+      .select('time,service_dur,service_name')
+      .eq('date',fmtISO(BK.date))
+      .eq('status','confirmed');
+    if(BK.staff){
+      bkQuery=bkQuery.eq('staff_id',BK.staff.id);
+    }else{
+      const barberIds=STAFF_LIST.filter(s=>s.role==='barber'||s.role==='admin').map(s=>s.id);
+      if(barberIds.length)bkQuery=bkQuery.in('staff_id',barberIds);
+    }
+    const{data:bkData,error:bkErr}=await bkQuery;
+    if(!bkErr) existingBookings=(bkData||[]).map(b=>({...b,time:to12h(b.time)}));
+
+    if(BK.staff){
+      const{data:blData}=await SB.from('blocked_slots')
+        .select('full_day')
+        .eq('staff_id',BK.staff.id)
+        .eq('date',fmtISO(BK.date))
+        .eq('full_day',true);
+      if(blData?.length) dayBlocked=true;
+    }
+  }catch(e){}
+
+  sl.classList.add('hidden');
+
+  if(dayBlocked){
+    sg.innerHTML='<div style="color:var(--txt3);font-size:12px;grid-column:1/-1;padding:10px 0">Not available this day.</div>';
+    return;
+  }
+
+  let workingTimes=getWorkingTimesFor(BK.date);
+  if(!workingTimes.length){
+    sg.innerHTML='<div style="color:var(--txt3);font-size:12px;grid-column:1/-1;padding:10px 0">This barber has this day off.</div>';
+    return;
+  }
+
+  // Vancouver time — hide past slots for today
+  const vanParts=Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA',{timeZone:'America/Vancouver',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false})
+    .formatToParts(new Date()).map(p=>[p.type,p.value])
+  );
+  const vanDateStr=`${vanParts.year}-${vanParts.month}-${vanParts.day}`;
+  const isToday=fmtISO(BK.date)===vanDateStr;
+  const nowMins=isToday?(parseInt(vanParts.hour)*60+parseInt(vanParts.minute)):0;
+
+  // End of barber's shift
+  const dow=BK.date.getDay();
+  const endHour=BK.staff&&STAFF_HOURS[dow]?.end_time
+    ?timeToMins(STAFF_HOURS[dow].end_time):timeToMins('6:00 PM');
+
+  // ── Pre-compute every blocked slot ──
+  // For each existing booking, figure out its real duration using:
+  // 1. stored service_dur  2. SVCS array lookup  3. fallback 30
+  const blockedSet=new Set();
+  existingBookings.forEach(b=>{
+    const bDur=b.service_dur
+      ||(SVCS.find(s=>s.name===b.service_name)||{}).dur
+      ||30;
+    const bStart=timeToMins(b.time);
+    const bEnd=bStart+bDur;
+    // Any slot whose window overlaps this booking is blocked
+    TIMES.forEach(t=>{
+      const tStart=timeToMins(t);
+      const tEnd=tStart+svcDur;
+      if(tStart<bEnd&&tEnd>bStart) blockedSet.add(t);
+    });
+  });
+
+  // ── Only show truly available slots ──
+  const available=workingTimes.filter(t=>{
+    const mins=timeToMins(t);
+    if(isToday&&mins<=nowMins) return false;   // past
+    if(mins+svcDur>endHour) return false;       // runs past shift end
+    if(blockedSet.has(t)) return false;          // overlaps booking
+    return true;
+  });
+
+  if(!available.length){
+    sg.innerHTML='<div style="color:var(--txt3);font-size:12px;grid-column:1/-1;padding:10px 0">No available times for this date. Try another day.</div>';
+    return;
+  }
+
+  sg.innerHTML=available.map(t=>{
+    const sel=BK.time===t;
+    return`<button class="slot-btn${sel?' sel':''}" onclick="selectTime('${t}')">${t}</button>`;
+  }).join('');
+}
+function selectTime(t){BK.time=t;document.querySelectorAll('.slot-btn').forEach(b=>b.classList.remove('sel'));event.target.classList.add('sel');document.getElementById('step3-next').disabled=false}
+function renderStep4(){
+  document.getElementById('summary-block').innerHTML=`
+    <div><span class="lbl">Service &nbsp;</span><span class="val">${BK.svc?.name||''}</span></div>
+    <div><span class="lbl">Barber &nbsp;</span><span class="val">${BK.staff?.name||'Any Available'}</span></div>
+    <div><span class="lbl">Date &nbsp;</span><span class="val">${fmtDate(BK.date)}</span></div>
+    <div><span class="lbl">Time &nbsp;</span><span class="val">${BK.time||''}</span></div>
+    <div><span class="lbl">Total &nbsp;</span><span class="price">$${BK.svc?.price||0} CAD</span></div>`;
+  document.getElementById('f-name').value=BK.info.name||'';document.getElementById('f-email').value=BK.info.email||'';
+  document.getElementById('f-phone').value=BK.info.phone||'';document.getElementById('f-notes').value=BK.info.notes||'';
+}
+async function submitBooking(){
+  const name=document.getElementById('f-name').value.trim(),email=document.getElementById('f-email').value.trim();
+  const errEl=document.getElementById('book-error');errEl.classList.add('hidden');
+  if(!name||!email){errEl.textContent='Name and email are required.';errEl.classList.remove('hidden');return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='Please enter a valid email address.';errEl.classList.remove('hidden');return}
+  const phoneVal=document.getElementById('f-phone').value.trim();
+  if(phoneVal&&!/^\+?[\d\s()\-]{10,20}$/.test(phoneVal)){
+    errEl.textContent='Please enter a valid phone number (example: +1 236 555 1234).';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  BK.info={name,email,phone:phoneVal,notes:document.getElementById('f-notes').value.trim()};
+  const btn=document.getElementById('step4-confirm-btn');btn.disabled=true;btn.textContent='Booking…';
+  try{
+    const{error}=await withTimeout(SB.from('bookings').insert({
+      service_name:BK.svc.name,service_price:BK.svc.price,service_dur:BK.svc.dur,
+      staff_id:BK.staff?.id||null,staff_name:BK.staff?.name||null,
+      client_name:name,client_email:email,client_phone:BK.info.phone||null,
+      date:fmtISO(BK.date),time:BK.time,notes:BK.info.notes||null
+    }),15000,'Booking request timed out. Please check your connection and try again.');
+    if(error){errEl.textContent='Booking failed: '+error.message;errEl.classList.remove('hidden');btn.disabled=false;btn.textContent='Confirm Booking';return}
+    BK.info.smsWarning='';
+    if(BK.info.phone){
+      const smsRes=await sendSmsBookingConfirmation({
+        clientName:name,
+        clientPhone:BK.info.phone,
+        serviceName:BK.svc.name,
+        servicePrice:BK.svc.price,
+        date:fmtISO(BK.date),
+        time:BK.time,
+        staffName:BK.staff?.name||null
+      });
+      if(!smsRes.ok){
+        BK.info.smsWarning=smsRes.error||'Could not send SMS confirmation.';
+      }
+    }
+    BK.step=5;renderStep();
+  }catch(e){
+    console.error('Booking error:',e);
+    errEl.textContent='Something went wrong. Please try again.';errEl.classList.remove('hidden');btn.disabled=false;btn.textContent='Confirm Booking';
+  }
+}
+function renderStep5(){
+  const smsWarn=BK.info.smsWarning
+    ?`<br><span style="color:#E05555">SMS notice: ${BK.info.smsWarning}</span>`
+    :'';
+  document.getElementById('success-sub').innerHTML=`See you on <span style="color:var(--yellow)">${fmtDate(BK.date)} at ${BK.time}</span>.<br>Booked under <strong>${BK.info.email}</strong>.${smsWarn}`;
+  document.getElementById('success-details').innerHTML=`
+    <span class="sk">Service</span><span class="sv">${BK.svc?.name||''}</span>
+    <span class="sk">Barber</span><span class="sv">${BK.staff?.name||'Any Available'}</span>
+    <span class="sk">Location</span><span class="sv">2255 E Hastings St</span>
+    <span class="sk">Price</span><span class="sv-price">$${BK.svc?.price||0} CAD</span>`;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+loadServices().then(()=>loadStaff());
+</script>
+</body>
+</html>
