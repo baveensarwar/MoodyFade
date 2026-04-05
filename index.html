@@ -583,10 +583,9 @@ async function withTimeout(promise,ms,msg){
   return Promise.race([promise,timeout]).finally(()=>clearTimeout(tid));
 }
 
-async function sendSmsBookingConfirmation(payload){
-  if(!payload||!payload.clientPhone)return{ok:false,error:'Missing phone payload'};
+async function callSupabaseFunction(fnName,payload){
   try{
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/send-booking-sms`,{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/${fnName}`,{
       method:'POST',
       headers:{
         'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,
@@ -600,14 +599,22 @@ async function sendSmsBookingConfirmation(payload){
     try{parsed=raw?JSON.parse(raw):null}catch(_){parsed=null}
     if(!res.ok){
       const errMsg=parsed?.hint||parsed?.message||parsed?.error||raw||`HTTP ${res.status}`;
-      console.warn('SMS confirmation failed:',res.status,parsed||raw);
+      console.warn(`${fnName} failed:`,res.status,parsed||raw);
       return{ok:false,error:String(errMsg)};
     }
     return{ok:true,data:parsed};
   }catch(e){
-    console.warn('SMS confirmation error:',e);
+    console.warn(`${fnName} error:`,e);
     return{ok:false,error:String(e)};
   }
+}
+function sendSmsBookingConfirmation(payload){
+  if(!payload||!payload.clientPhone)return Promise.resolve({ok:false,error:'Missing phone payload'});
+  return callSupabaseFunction('send-booking-sms',payload);
+}
+function sendEmailBookingConfirmation(payload){
+  if(!payload||!payload.clientEmail)return Promise.resolve({ok:false,error:'Missing email payload'});
+  return callSupabaseFunction('send-booking-email',payload);
 }
 
 window.addEventListener('scroll',()=>{
@@ -1001,8 +1008,9 @@ async function submitBooking(){
   const phoneVal=document.getElementById('f-phone').value.trim();
   if(!name||!email||!phoneVal){errEl.textContent='Name, email, and phone number are required.';errEl.classList.remove('hidden');return}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='Please enter a valid email address.';errEl.classList.remove('hidden');return}
-  if(!/^\+?[\d\s()\-]{10,20}$/.test(phoneVal)){
-    errEl.textContent='Please enter a valid phone number (example: +1 236 555 1234).';
+  // Canadian numbers: +1 or 1 prefix optional, area code starts 2-9, exchange starts 2-9, 10 digits total
+  if(!/^\+?1?[\s.\-]?\(?[2-9]\d{2}\)?[\s.\-]?[2-9]\d{2}[\s.\-]?\d{4}$/.test(phoneVal)){
+    errEl.textContent='Please enter a valid Canadian phone number (example: +1 236 555 1234).';
     errEl.classList.remove('hidden');
     return;
   }
@@ -1016,19 +1024,19 @@ async function submitBooking(){
       date:fmtISO(BK.date),time:BK.time,notes:BK.info.notes||null
     }),15000,'Booking request timed out. Please check your connection and try again.');
     if(error){errEl.textContent='Booking failed: '+error.message;errEl.classList.remove('hidden');btn.disabled=false;btn.textContent='Confirm Booking';return}
-    BK.info.smsWarning='';
-    const smsRes=await sendSmsBookingConfirmation({
-      clientName:name,
-      clientPhone:BK.info.phone,
-      serviceName:BK.svc.name,
-      servicePrice:BK.svc.price,
-      date:fmtISO(BK.date),
-      time:BK.time,
-      staffName:BK.staff?.name||null
-    });
-    if(!smsRes.ok){
-      BK.info.smsWarning=smsRes.error||'Could not send SMS confirmation.';
-    }
+    BK.info.smsWarning='';BK.info.emailWarning='';
+    const confirmPayload={
+      clientName:name,clientEmail:email,clientPhone:BK.info.phone,
+      serviceName:BK.svc.name,servicePrice:BK.svc.price,
+      date:fmtISO(BK.date),time:BK.time,
+      staffName:BK.staff?.name||null,notes:BK.info.notes||null
+    };
+    const[smsRes,emailRes]=await Promise.all([
+      sendSmsBookingConfirmation(confirmPayload),
+      sendEmailBookingConfirmation(confirmPayload)
+    ]);
+    if(!smsRes.ok){BK.info.smsWarning=smsRes.error||'Could not send SMS confirmation.';}
+    if(!emailRes.ok){BK.info.emailWarning=emailRes.error||'Could not send email confirmation.';}
     BK.step=5;renderStep();
   }catch(e){
     console.error('Booking error:',e);
@@ -1036,10 +1044,9 @@ async function submitBooking(){
   }
 }
 function renderStep5(){
-  const smsWarn=BK.info.smsWarning
-    ?`<br><span style="color:#E05555">SMS notice: ${BK.info.smsWarning}</span>`
-    :'';
-  document.getElementById('success-sub').innerHTML=`See you on <span style="color:var(--yellow)">${fmtDate(BK.date)} at ${BK.time}</span>.<br>Booked under <strong>${BK.info.email}</strong>.${smsWarn}`;
+  const smsWarn=BK.info.smsWarning?`<br><span style="color:#E05555;font-size:11px">SMS notice: ${BK.info.smsWarning}</span>`:'';
+  const emailWarn=BK.info.emailWarning?`<br><span style="color:#E05555;font-size:11px">Email notice: ${BK.info.emailWarning}</span>`:'';
+  document.getElementById('success-sub').innerHTML=`See you on <span style="color:var(--yellow)">${fmtDate(BK.date)} at ${BK.time}</span>.<br>Confirmation sent to <strong>${BK.info.email}</strong>.${smsWarn}${emailWarn}`;
   document.getElementById('success-details').innerHTML=`
     <span class="sk">Service</span><span class="sv">${BK.svc?.name||''}</span>
     <span class="sk">Barber</span><span class="sv">${BK.staff?.name||'Any Available'}</span>
