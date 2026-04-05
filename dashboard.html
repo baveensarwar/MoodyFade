@@ -696,7 +696,6 @@ async function initApp(user){
   }
 
   document.getElementById('today-date').textContent=new Date().toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  //await loadServicesDB();
   await loadAll();
 }
 
@@ -709,7 +708,7 @@ async function signOut(){await SB.auth.signOut();location.reload()}
 })();
 
 /* ── LOAD DATA ── */
-async function loadAll(){await Promise.all([loadBookings(),loadStaffList()]);renderTodayView();renderBookingsTable();renderStaffList()}
+async function loadAll(){await Promise.all([loadBookings(),loadStaffList(),loadServicesDB()]);renderTodayView();renderBookingsTable();renderStaffList();loadBlockedSlots();loadDurations();}
 
 async function loadBookings(reset=true){
   if(reset){bookingsPage=0;allBookings=[];hasMoreBookings=true}
@@ -1113,6 +1112,15 @@ async function blockFullDay(){
 async function unblockDate(date){
   await SB.from('blocked_slots').delete().eq('staff_id',currentStaff.id).eq('date',date).eq('full_day',true);
   loadBlockedSlots();
+}
+
+async function loadBlockedSlots(){
+  const el=document.getElementById('blocked-list');
+  if(!el)return;
+  const today=new Date().toISOString().split('T')[0];
+  const{data,error}=await SB.from('blocked_slots').select('date,reason').eq('staff_id',currentStaff.id).eq('full_day',true).gte('date',today).order('date');
+  if(error||!data?.length){el.innerHTML='<div style="color:var(--txt3);font-size:12px;padding:10px 0">No upcoming blocked dates.</div>';return}
+  processBlockedSlotsData(data);
 }
 
 /* ── SERVICE DURATIONS ── */
