@@ -708,7 +708,7 @@ async function signOut(){await SB.auth.signOut();location.reload()}
 })();
 
 /* ── LOAD DATA ── */
-async function loadAll(){await Promise.all([loadBookings(),loadStaffList(),loadServicesDB()]);renderTodayView();renderBookingsTable();renderStaffList();loadBlockedSlots();loadDurations();}
+async function loadAll(){await Promise.all([loadBookings(),loadStaffList(),loadServicesDB()]);renderTodayView();renderBookingsTable();renderStaffList();loadBlockedSlots();loadWeeklyHours();loadDurations();}
 
 async function loadBookings(reset=true){
   if(reset){bookingsPage=0;allBookings=[];hasMoreBookings=true}
@@ -1121,6 +1121,69 @@ async function loadBlockedSlots(){
   const{data,error}=await SB.from('blocked_slots').select('date,reason').eq('staff_id',currentStaff.id).eq('full_day',true).gte('date',today).order('date');
   if(error||!data?.length){el.innerHTML='<div style="color:var(--txt3);font-size:12px;padding:10px 0">No upcoming blocked dates.</div>';return}
   processBlockedSlotsData(data);
+}
+
+/* ── WEEKLY HOURS ── */
+const DAYS_OF_WEEK=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const HOUR_TIMES=['6:00 AM','6:30 AM','7:00 AM','7:30 AM','8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM'];
+
+function hoursTimeSelect(id,selected){
+  return`<select id="${id}" style="background:var(--surf2);border:1px solid var(--bdr);color:var(--txt);font-size:11px;padding:5px 8px;border-radius:4px">${HOUR_TIMES.map(t=>`<option value="${t}"${t===selected?' selected':''}>${t}</option>`).join('')}</select>`;
+}
+
+async function loadWeeklyHours(){
+  const grid=document.getElementById('weekly-hours-grid');
+  if(!grid)return;
+  const{data}=await SB.from('staff_hours').select('*').eq('staff_id',currentStaff.id);
+  const map={};
+  (data||[]).forEach(h=>{map[h.day_of_week]=h});
+  grid.innerHTML=DAYS_OF_WEEK.map((day,dow)=>{
+    const h=map[dow];
+    const working=h?h.is_working:false;
+    const start=h?.start_time||'9:00 AM';
+    const end=h?.end_time||'6:00 PM';
+    return`<div class="hours-row" id="hours-row-${dow}">
+      <div class="hours-day">${day}</div>
+      <label class="hours-toggle">
+        <input type="checkbox" id="hours-working-${dow}" ${working?'checked':''} onchange="toggleHoursRow(${dow})" style="accent-color:var(--yellow);width:14px;height:14px">
+        <span id="hours-label-${dow}" style="color:${working?'var(--yellow)':'var(--txt3)'}">${working?'Open':'Off'}</span>
+      </label>
+      <div id="hours-times-${dow}" style="display:${working?'flex':'none'};align-items:center;gap:8px;flex-wrap:wrap">
+        ${hoursTimeSelect('hours-start-'+dow,start)}
+        <span style="color:var(--txt3);font-size:11px">to</span>
+        ${hoursTimeSelect('hours-end-'+dow,end)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHoursRow(dow){
+  const working=document.getElementById('hours-working-'+dow).checked;
+  document.getElementById('hours-times-'+dow).style.display=working?'flex':'none';
+  const lbl=document.getElementById('hours-label-'+dow);
+  lbl.textContent=working?'Open':'Off';
+  lbl.style.color=working?'var(--yellow)':'var(--txt3)';
+}
+
+async function saveWeeklyHours(){
+  const btn=document.getElementById('save-hours-btn');
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const rows=DAYS_OF_WEEK.map((_,dow)=>{
+      const working=document.getElementById('hours-working-'+dow)?.checked||false;
+      const start=document.getElementById('hours-start-'+dow)?.value||'9:00 AM';
+      const end=document.getElementById('hours-end-'+dow)?.value||'6:00 PM';
+      return{staff_id:currentStaff.id,day_of_week:dow,is_working:working,start_time:start,end_time:end};
+    });
+    await SB.from('staff_hours').delete().eq('staff_id',currentStaff.id);
+    const{error}=await SB.from('staff_hours').insert(rows);
+    if(error)throw error;
+    btn.textContent='Saved ✓';btn.style.background='var(--green)';btn.style.color='#000';
+    setTimeout(()=>{btn.textContent='Save Hours';btn.style.background='';btn.style.color='';btn.disabled=false},2000);
+  }catch(e){
+    alert('Error saving hours: '+e.message);
+    btn.disabled=false;btn.textContent='Save Hours';
+  }
 }
 
 /* ── SERVICE DURATIONS ── */
