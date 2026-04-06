@@ -795,6 +795,9 @@ function isSlotAvailable(slotTime,newDur,existingBookings){
 
 async function fetchBlockedDays(){
   BLOCKED_DAYS=new Set();STAFF_HOURS={};BARBER_DURATIONS={};
+  // Always fetch shop-wide closures — these block all bookings regardless of barber
+  const{data:scData}=await SB.from('shop_closures').select('date');
+  (scData||[]).forEach(c=>BLOCKED_DAYS.add(String(c.date)));
   if(BK.staff){
     const[bd,wh,dd]=await Promise.all([
       SB.from('blocked_slots').select('date').eq('staff_id',BK.staff.id).eq('full_day',true),
@@ -928,6 +931,11 @@ async function renderSlots(){
   }catch(e){}
 
   sl.classList.add('hidden');
+
+  if(BLOCKED_DAYS.has(fmtISO(BK.date))&&!dayBlocked){
+    sg.innerHTML='<div style="color:var(--red);font-size:12px;grid-column:1/-1;padding:10px 0">🔒 The shop is closed on this day.</div>';
+    return;
+  }
 
   if(dayBlocked){
     sg.innerHTML='<div style="color:var(--txt3);font-size:12px;grid-column:1/-1;padding:10px 0">Not available this day.</div>';
